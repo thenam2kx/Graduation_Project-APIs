@@ -1,13 +1,10 @@
 import express from 'express'
-import { userController } from '~/controllers/user.controller'
-import { userValidation } from '~/validations/user.validation'
+import { userRoute } from './user.routes'
+import { authRoute } from './auth.routes'
 
 const Router = express.Router()
 
-Router.route('/users')
-  .post(userValidation.createUserValidation, userController.createUser)
-  .get((req, res) => {
-    res.send('Get all users')
-  })
+Router.use('/users', userRoute)
+Router.use('/auth', authRoute)
 
 export const APIs_v1 = Router

@@ -146,7 +146,7 @@
 
 ## 🛠️ Thư mục Middlewares
 
-- `limiter.ts`: Middleware giới hạn tốc độ yêu cầu.
+- `limiter.ts`: Middleware giới hạn lượt call api trong 1 phút.
 - `errorHandlingMiddleware.ts`: Middleware xử lý lỗi.
 
 ---
@@ -160,6 +160,8 @@
 ## 🚦 Thư mục Routes
 
 - `v1/index.ts`: Định nghĩa các tuyến API cho phiên bản 1.
+- `auth.route.ts`: Định nghĩa APIs cho auth.
+- `user.route.ts`: Định nghĩa APIs cho user.
 
 ---
 
@@ -180,6 +182,11 @@
 - `ApiError.ts`: Lớp xử lý lỗi API tùy chỉnh.
 - `constants.ts`: Các hằng số được sử dụng trong dự án.
 - `uploadFile.ts`: Tiện ích để tải tệp lên.
+- `ApiError.ts`: Cấu hình lỗi
+- `convertSlugUrl.ts`: Hàm convert string sang dạng slug (ví dụ => vi-du)
+- `jwt.ts`: Các hàm sign token và verify token
+- `password.ts`: Các hàm hash pasword và compare password
+- `sendEmail.ts`: Hàm gửi email
 - `utils.ts`: Các hàm tiện ích chung.
 
 ---
@@ -200,3 +207,37 @@
 ## 🧪 Thư mục Tests
 
 ---
+
+[Sơ đồ hoạt động](https://www.canva.com/design/DAGiy-k1iaw/7kxCkPGsfWPqTNOZ7hWoww/edit?utm_content=DAGiy-k1iaw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+
+---
+
+## 📖 Hướng Dẫn Clone & Chạy Dự Án
+### 🚀 1. Clone dự án từ GitHub
+```
+ - git clone https://github.com/thenam2kx/Graduation_Project-APIs.git
+```
+
+### 🚀 2. Tải các dependencies
+```
+ - npm install
+```
+
+### 🚀 3. Chạy dự án
+```
+ - npm run dev
+```
+
+---
+
+## 📖 Kéo branch từ github về máy
+### 🚀 1. Kiểm tra các branch đang có trên github
+```
+  - git fetch
+  - git branch -r
+```
+
+### 🚀 2. Kéo branch cụ thể về máy (thay thế branch-name bằng tên branch)
+```
+  - git checkout -b branch-name origin/branch-name
+```
