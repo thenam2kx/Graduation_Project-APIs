@@ -2,20 +2,25 @@ import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { userService } from '~/services/user.service'
 import ApiError from '~/utils/ApiError'
+import sendApiResponse from '~/utils/response.message'
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await userService.handleCreateUser(req.body)
     if (result === null) {
-      res.status(StatusCodes.BAD_REQUEST).json({
-        EC: StatusCodes.BAD_REQUEST,
-        EM: 'User already exists'
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'User already exists',
+        error: {
+          code: StatusCodes.BAD_REQUEST,
+          details: 'The user with the provided email already exists.'
+        }
       })
     } else {
-      res.status(StatusCodes.CREATED).json({
-        EC: StatusCodes.CREATED,
-        EM: 'Create user success',
-        DT: result
+      sendApiResponse(res, StatusCodes.CREATED, {
+        statusCode: StatusCodes.CREATED,
+        message: 'Create user success',
+        data: result
       })
     }
   } catch (error) {

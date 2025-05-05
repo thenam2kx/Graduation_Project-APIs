@@ -11,7 +11,8 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
   },
   {
     timestamps: true,
-    versionKey: false
+    versionKey: false,
+    strict: true
   }
 )
 
