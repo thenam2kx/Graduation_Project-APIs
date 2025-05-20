@@ -6,8 +6,11 @@ const Router = express.Router()
 
 Router.route('/')
   .post(userValidation.createUserValidation, userController.createUser)
-  .get((req, res) => {
-    res.send('Get all users')
-  })
+  .get(userValidation.fetchAllUserValidation, userController.fetchAllUser)
+
+Router.route('/:userId')
+  .get(userValidation.fetchInfoUserValidation, userController.fetchInfoUser)
+  .patch(userValidation.updateUserValidation, userController.updateUser)
+  .delete(userValidation.deleteUserValidation, userController.deleteUser)
 
 export const userRoute = Router
