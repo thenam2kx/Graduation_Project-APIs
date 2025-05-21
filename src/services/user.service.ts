@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import UserModel from '~/models/user.model'
 import { hashPassword, isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
