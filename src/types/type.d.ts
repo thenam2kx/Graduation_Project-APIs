@@ -28,6 +28,12 @@ declare global {
     verifyEmailExpires?: Date
   }
 
+  interface ICateBlog {
+    _id: string
+    name: string
+    slug: string
+  }
+
   interface IMeta {
     current: number
     pages: number
