@@ -2,7 +2,7 @@ import { NextFunction } from "express";
 import { Request, Response } from "express"
 import { StatusCodes } from "http-status-codes";
 import { update } from "lodash";
-import { brandService } from "~/services/brand.service";
+import { brandService } from "~/services/BrandServices";
 import ApiError from "~/utils/ApiError";
 import sendApiResponse from "~/utils/response.message";
 
@@ -12,21 +12,21 @@ const createBrand = async (req: Request, res: Response, next: NextFunction) => {
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình tạo brand',
+        message: 'Có lỗi xảy ra trong quá trình tạo brandd',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình tạo brand'
+          details: 'Có lỗi xảy ra trong quá trình tạo brandd'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.CREATED, {
         statusCode: StatusCodes.CREATED,
-        message: 'Tạo brand thành công',
+        message: 'Tạo brand thành côngg',
         data: result
       })
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiệnn'
     const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
     next(customError)
   }
@@ -54,21 +54,21 @@ const fetchAllBrand = async (req: Request, res: Response, next: NextFunction) =>
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình lấy danh sách brand',
+        message: 'Có lỗi xảy ra trong quá trình lấy danh sách brandd',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình lấy danh sách brand'
+          details: 'Có lỗi xảy ra trong quá trình lấy danh sách brandd'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy danh sách danh mục thành công',
+        message: 'Lấy danh sách danh mục thành côngg',
         data: result
       })
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiệnn'
     const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
     next(customError)
   }

@@ -1,6 +1,6 @@
 import express from 'express'
-import { brandController } from '~/controllers/brand.contrroller'
-import { brandValidation } from '~/validations/brand.validation'
+import { brandController } from '~/controllers/BrandController'
+import { brandValidation } from '~/validations/BrandValidation'
 const Router = express.Router()
 Router.route('/')
   .post(brandValidation.createBrandValidation, brandController.createBrand)

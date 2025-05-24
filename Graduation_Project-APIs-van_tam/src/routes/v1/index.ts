@@ -1,7 +1,7 @@
 import express from 'express'
 import { userRoute } from './user.routes'
 import { authRoute } from './auth.routes'
-import { brandRoute } from './brand.routes'
+import { brandRoute } from './BrandRoutes'
 
 const Router = express.Router()
 

@@ -1,4 +1,4 @@
-import BrandModel, { IBrand } from "~/models/brand.model";
+import BrandModel, { IBrand } from "~/models/BrandModel";
 import { isExistObject, isValidMongoId } from "~/utils/utils";
 import aqp from 'api-query-params'
 import ApiError from "~/utils/ApiError";
