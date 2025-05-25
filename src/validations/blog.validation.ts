@@ -4,14 +4,13 @@ import Joi from 'joi'
 import ApiError from '~/utils/ApiError'
 
 // Tái sử dụng objectId cho MongoDB
-const objectIdSchema = Joi.string()
-  .trim()
-  .pattern(/^[0-9a-fA-F]{24}$/)
-  .required()
-  .messages({
-    'string.pattern.base': 'ID phải là ObjectId hợp lệ',
-    'any.required': 'ID là bắt buộc'
-  })
+const metaDataRefSchema = Joi.object({
+  _id: Joi.string()
+    .required()
+    .trim()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .message('ID phải là ObjectId hợp lệ')
+})
 
 const createBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const createBlogSchema = Joi.object({
@@ -30,7 +29,7 @@ const createBlogValidation = async (req: Request, res: Response, next: NextFunct
     image: Joi.string().optional().uri().messages({
       'string.uri': 'Hình ảnh phải là một URL hợp lệ'
     }),
-    categoryBlogId: objectIdSchema.label('categoryBlogId')
+    categoryBlogId: metaDataRefSchema.label('categoryBlogId')
   })
   try {
     await createBlogSchema.validateAsync(req.body, { abortEarly: false })
@@ -60,7 +59,7 @@ const fetchAllBlogValidation = async (req: Request, res: Response, next: NextFun
 
 const fetchInfoBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const fetchInfoBlogSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: metaDataRefSchema.label('blogId')
   })
   try {
     await fetchInfoBlogSchema.validateAsync(req.params, { abortEarly: false })
@@ -80,7 +79,7 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
     image: Joi.string().optional().uri().messages({
       'string.uri': 'Hình ảnh phải là một URL hợp lệ'
     }),
-    categoryBlogId: objectIdSchema.optional().label('categoryBlogId'),
+    categoryBlogId: metaDataRefSchema.optional().label('categoryBlogId'),
     isPublic: Joi.forbidden().messages({
       'any.unknown': 'isPublic không được phép cập nhật qua endpoint này'
     })
@@ -97,7 +96,7 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
 
 const updateBlogStatusValidation = async (req: Request, res: Response, next: NextFunction) => {
   const paramsSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: metaDataRefSchema.label('blogId')
   })
   const bodySchema = Joi.object({
     isPublic: Joi.boolean().required().messages({
@@ -119,7 +118,7 @@ const updateBlogStatusValidation = async (req: Request, res: Response, next: Nex
 
 const deleteBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const deleteBlogSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: metaDataRefSchema.label('blogId')
   })
   try {
     await deleteBlogSchema.validateAsync(req.params, { abortEarly: false })
@@ -133,7 +132,7 @@ const deleteBlogValidation = async (req: Request, res: Response, next: NextFunct
 
 const fetchBlogByCategoryValidation = async (req: Request, res: Response, next: NextFunction) => {
   const paramsSchema = Joi.object({
-    categoryId: objectIdSchema.label('categoryId')
+    categoryId: metaDataRefSchema.label('categoryId')
   })
   const querySchema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
