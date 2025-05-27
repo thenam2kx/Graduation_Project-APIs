@@ -32,21 +32,18 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
 
 const fetchAllUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { current, pageSize, qs } = req.query
-    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
-    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
-    const parsedQs =
-      typeof qs === 'string'
-        ? qs
-        : Array.isArray(qs)
-          ? qs.join(',')
-          : typeof qs === 'object' && qs !== null
-            ? JSON.stringify(qs)
-            : ''
+    const { current = '1', pageSize = '10', ...restQuery } = req.query
+
+    const parsedCurrentPage = parseInt(current as string, 10)
+    const parsedLimit = parseInt(pageSize as string, 10)
+
+    // convert restQuery to qs string
+    const queryString = new URLSearchParams(restQuery as Record<string, string>).toString()
+
     const result = await userService.handleFetchAllUser({
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
-      qs: parsedQs
+      qs: queryString
     })
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
