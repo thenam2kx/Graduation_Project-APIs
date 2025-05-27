@@ -3,15 +3,12 @@ import { StatusCodes } from 'http-status-codes'
 import Joi from 'joi'
 import ApiError from '~/utils/ApiError'
 
-// Tái sử dụng objectId cho MongoDB
-const objectIdSchema = Joi.string()
-  .trim()
-  .pattern(/^[0-9a-fA-F]{24}$/)
-  .required()
-  .messages({
-    'string.pattern.base': 'ID phải là ObjectId hợp lệ',
-    'any.required': 'ID là bắt buộc'
-  })
+// const objectIdSchema = Joi.string().trim().length(24).hex().required().messages({
+//   'string.base': 'ID phải là chuỗi',
+//   'string.length': 'ID phải có độ dài 24 ký tự',
+//   'string.hex': 'ID phải là chuỗi hex hợp lệ',
+//   'any.required': 'ID là trường bắt buộc'
+// })
 
 const createBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const createBlogSchema = Joi.object({
@@ -27,18 +24,23 @@ const createBlogValidation = async (req: Request, res: Response, next: NextFunct
       'string.empty': 'Nội dung không được để trống',
       'any.required': 'Nội dung là trường bắt buộc'
     }),
-    image: Joi.string().optional().uri().messages({
-      'string.uri': 'Hình ảnh phải là một URL hợp lệ'
+    isPublic: Joi.boolean().optional().default(false).messages({
+      'boolean.base': 'isPublic phải là boolean',
+      'any.default': 'isPublic sẽ mặc định là false nếu không được cung cấp'
     }),
-    categoryBlogId: objectIdSchema.label('categoryBlogId')
+    categoryBlogId: Joi.string().trim().length(24).hex().required().label('categoryBlogId').messages({
+      'string.base': 'categoryBlogId phải là chuỗi',
+      'string.length': 'categoryBlogId phải có độ dài 24 ký tự',
+      'string.hex': 'categoryBlogId phải là chuỗi hex hợp lệ',
+      'any.required': 'categoryBlogId là trường bắt buộc'
+    })
   })
   try {
     await createBlogSchema.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
@@ -53,22 +55,25 @@ const fetchAllBlogValidation = async (req: Request, res: Response, next: NextFun
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
 const fetchInfoBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const fetchInfoBlogSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: Joi.string().trim().length(24).hex().required().label('blogId').messages({
+      'string.base': 'blogId phải là chuỗi',
+      'string.length': 'blogId phải có độ dài 24 ký tự',
+      'string.hex': 'blogId phải là chuỗi hex hợp lệ',
+      'any.required': 'blogId là trường bắt buộc'
+    })
   })
   try {
     await fetchInfoBlogSchema.validateAsync(req.params, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
@@ -77,12 +82,10 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
     title: Joi.string().optional().min(3).max(255).trim(),
     slug: Joi.string().optional().trim(),
     content: Joi.string().optional().trim(),
-    image: Joi.string().optional().uri().messages({
-      'string.uri': 'Hình ảnh phải là một URL hợp lệ'
-    }),
-    categoryBlogId: objectIdSchema.optional().label('categoryBlogId'),
-    isPublic: Joi.forbidden().messages({
-      'any.unknown': 'isPublic không được phép cập nhật qua endpoint này'
+    categoryBlogId: Joi.string().trim().length(24).hex().optional().label('categoryBlogId').messages({
+      'string.base': 'categoryBlogId phải là chuỗi',
+      'string.length': 'categoryBlogId phải có độ dài 24 ký tự',
+      'string.hex': 'categoryBlogId phải là chuỗi hex hợp lệ'
     })
   })
   try {
@@ -90,21 +93,26 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
-const updateBlogStatusValidation = async (req: Request, res: Response, next: NextFunction) => {
+export const updateBlogStatusValidation = async (req: Request, res: Response, next: NextFunction) => {
   const paramsSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: Joi.string().trim().length(24).hex().required().label('blogId').messages({
+      'string.base': 'blogId phải là chuỗi',
+      'string.length': 'blogId phải có độ dài 24 ký tự',
+      'string.hex': 'blogId phải là chuỗi hex hợp lệ',
+      'any.required': 'blogId là trường bắt buộc'
+    })
   })
+
   const bodySchema = Joi.object({
     isPublic: Joi.boolean().required().messages({
       'any.required': 'isPublic là trường bắt buộc',
       'boolean.base': 'isPublic phải là boolean'
     })
-  }).unknown(true) // Cho phép các key ngoài schema
+  }).unknown(true)
 
   try {
     await paramsSchema.validateAsync(req.params, { abortEarly: false })
@@ -112,42 +120,51 @@ const updateBlogStatusValidation = async (req: Request, res: Response, next: Nex
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
 const deleteBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const deleteBlogSchema = Joi.object({
-    blogId: objectIdSchema.label('blogId')
+    blogId: Joi.string().trim().length(24).hex().required().label('blogId').messages({
+      'string.base': 'blogId phải là chuỗi',
+      'string.length': 'blogId phải có độ dài 24 ký tự',
+      'string.hex': 'blogId phải là chuỗi hex hợp lệ',
+      'any.required': 'blogId là trường bắt buộc'
+    })
   })
   try {
     await deleteBlogSchema.validateAsync(req.params, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
 const fetchBlogByCategoryValidation = async (req: Request, res: Response, next: NextFunction) => {
   const paramsSchema = Joi.object({
-    categoryId: objectIdSchema.label('categoryId')
+    categoryId: Joi.string().trim().length(24).hex().required().label('categoryId').messages({
+      'string.base': 'categoryId phải là chuỗi',
+      'string.length': 'categoryId phải có độ dài 24 ký tự',
+      'string.hex': 'categoryId phải là chuỗi hex hợp lệ',
+      'any.required': 'categoryId là trường bắt buộc'
+    })
   })
+
   const querySchema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
     qs: Joi.string().optional()
   })
+
   try {
     await paramsSchema.validateAsync(req.params, { abortEarly: false })
     await querySchema.validateAsync(req.query, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
 
