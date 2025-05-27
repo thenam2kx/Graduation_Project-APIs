@@ -57,7 +57,7 @@ const fetchAllUserValidation = async (req: Request, res: Response, next: NextFun
     qs: Joi.string().optional()
   })
   try {
-    await fetchAllUserValidationSchema.validateAsync(req.query, { abortEarly: false })
+    await fetchAllUserValidationSchema.validateAsync(req.query, { abortEarly: false, allowUnknown: true })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -87,8 +87,8 @@ const fetchInfoUserValidation = async (req: Request, res: Response, next: NextFu
 const updateUserValidation = async (req: Request, res: Response, next: NextFunction) => {
   const updateUserValidationSchema = Joi.object({
     fullName: Joi.string().optional().min(3).max(255).trim(),
-    email: Joi.forbidden().message('email không được phép cập nhật'),
-    password: Joi.forbidden().message('email không được phép cập nhật'),
+    email: Joi.forbidden().messages({ 'any.unknown': 'email không được phép cập nhật' }),
+    password: Joi.forbidden().messages({ 'any.unknown': 'password không được phép cập nhật' }),
     phone: Joi.string().optional().min(10).max(15).trim(),
     address: Joi.string().optional().min(5).max(255).trim(),
     gender: Joi.string().optional().valid('male', 'female', 'other'),
@@ -97,6 +97,7 @@ const updateUserValidation = async (req: Request, res: Response, next: NextFunct
     verifyCode: Joi.string().optional().min(6).max(6).trim(),
     verifyCodeExpired: Joi.date().optional(),
     isVerified: Joi.boolean().optional(),
+    status: Joi.string().optional().valid('active', 'inactive', 'banned'),
     role: Joi.string().optional().valid('user', 'admin'),
     refreshToken: Joi.string().optional().trim(),
     refreshTokenExpired: Joi.date().optional(),
