@@ -20,6 +20,16 @@ const handleCreateUser = async (data: IUser) => {
 
 const handleFetchAllUser = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
   const { filter, sort, population } = aqp(qs)
+
+  if (filter.keyword) {
+    const keyword = String(filter.keyword).trim()
+    delete filter.keyword
+
+    if (keyword) {
+      filter.$or = [{ name: { $regex: keyword, $options: 'i' } }, { phone: { $regex: keyword, $options: 'i' } }]
+    }
+  }
+
   delete filter.current
   delete filter.pageSize
 
