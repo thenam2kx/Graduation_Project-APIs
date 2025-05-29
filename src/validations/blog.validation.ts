@@ -86,6 +86,10 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
       'string.base': 'categoryBlogId phải là chuỗi',
       'string.length': 'categoryBlogId phải có độ dài 24 ký tự',
       'string.hex': 'categoryBlogId phải là chuỗi hex hợp lệ'
+    }),
+    isPublic: Joi.boolean().optional().default(false).messages({
+      'boolean.base': 'isPublic phải là boolean',
+      'any.default': 'isPublic sẽ mặc định là false nếu không được cung cấp'
     })
   })
   try {
