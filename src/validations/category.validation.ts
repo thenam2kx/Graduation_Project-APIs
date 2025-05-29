@@ -17,7 +17,7 @@ const createCategoryValidation = async (req: Request, res: Response, next: NextF
     }),
     description: Joi.string().optional().trim().max(500),
     slug: Joi.string().optional().trim().max(255),
-    icon: Joi.string().optional().trim().uri().max(500),
+    image: Joi.string().optional().trim().uri().max(500),
     isPublic: Joi.boolean().optional()
   })
 
