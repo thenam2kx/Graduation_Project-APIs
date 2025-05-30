@@ -1,13 +1,13 @@
 import { NextFunction } from 'express'
 import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { brandService } from '~/services/brand.services'
+import { brandService } from '~/services/brand.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 
 const createBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await brandService.handleCreateCategory(req.body)
+    const result = await brandService.handleCreateBrand(req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -62,7 +62,7 @@ const fetchAllBrand = async (req: Request, res: Response, next: NextFunction) =>
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy danh sách danh mục thành công',
+        message: 'Lấy danh sách brand thành công',
         data: result
       })
     }

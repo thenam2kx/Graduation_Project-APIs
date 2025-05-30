@@ -13,7 +13,7 @@ const objectIdSchema = Joi.string()
     'any.required': 'ID bắt buộc '
   })
 const createBrandValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const createBrandSchema = Joi.object({
+  const schema = Joi.object({
     name: Joi.string().required().min(3).max(255).trim().messages({
       'string.empty': 'Tên không được để trống',
       'any.required': 'Tên bắt buộc'
@@ -22,18 +22,21 @@ const createBrandValidation = async (req: Request, res: Response, next: NextFunc
       'string.empty': 'Slug không được để trống',
       'any.required': 'Slug là trường bắt buộc'
     }),
-    avatar: Joi.string().optional().uri().messages({
-      'string.uri': 'Hình ảnh phải là một URL hợp lệ'
+    avatar: Joi.string().uri().optional().messages({
+      'string.uri': 'Ảnh đại diện phải là URL hợp lệ'
     }),
-    categoryBrandId: objectIdSchema.label('categoryBrandId')
+    isPublic: Joi.boolean().required().messages({
+      'any.required': 'Trạng thái là bắt buộc',
+      'boolean.base': 'Trạng thái phải là true hoặc false'
+    }),
+    categoryBrandId: objectIdSchema.label('categoryBrandId').optional()
   })
   try {
-    await createBrandSchema.validateAsync(req.body, { abortEarly: false })
+    await schema.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {
-    const errMessage = error instanceof Error ? error.message : 'Có lỗi trong quá trình xử lí'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errMessage)
-    next(customError)
+    const message = error instanceof Error ? error.message : 'Xác thực dữ liệu thất bại'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
   }
 }
 const fetchAllBrandValidation = async (req: Request, res: Response, next: NextFunction) => {

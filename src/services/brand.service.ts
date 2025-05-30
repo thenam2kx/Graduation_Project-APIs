@@ -3,19 +3,28 @@ import { isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-const handleCreateCategory = async (data: IBrand) => {
+const handleCreateBrand = async (data: IBrand) => {
   await isExistObject(BrandModel, { slug: data.slug }, { checkExisted: true, errorMessage: 'Slug đã tồn tại' })
   const result = await BrandModel.create(data)
   return result.toObject()
 }
 const handleFetchAllBrand = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
-  const { filter, sort, population } = aqp(qs)
-  delete filter.current
-  delete filter.pageSize
+  let filter: any = {}
+  let sort: any = {}
+  let population: any = undefined
+  if (qs && typeof qs === 'string' && qs.trim() !== '') {
+    filter.$or = [{ name: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }]
+  } else {
+    const aqpResult = aqp(qs)
+    filter = aqpResult.filter
+    sort = aqpResult.sort
+    population = aqpResult.population
+    delete filter.current
+    delete filter.pageSize
+  }
 
   const offset = (+currentPage - 1) * +limit
   const defaultLimit = +limit || 10
-
   const totalItems = await BrandModel.countDocuments(filter)
   const totalPages = Math.ceil(totalItems / defaultLimit)
 
@@ -65,7 +74,7 @@ const handleDeleteBrand = async (categoryId: string): Promise<any> => {
   return category
 }
 export const brandService = {
-  handleCreateCategory,
+  handleCreateBrand,
   handleDeleteBrand,
   handleFetchBrandById,
   handleFetchAllBrand,
