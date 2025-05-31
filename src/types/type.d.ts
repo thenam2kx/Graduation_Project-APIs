@@ -6,7 +6,8 @@ declare global {
       user?: {
         role: string
         email: string
-        name: string
+        // name: string
+        _id: string
       }
     }
 
@@ -26,6 +27,12 @@ declare global {
     passwordResetExpires?: Date
     verifyEmailToken?: string
     verifyEmailExpires?: Date
+  }
+
+  interface ICateBlog {
+    _id: string
+    name: string
+    slug: string
   }
 
   interface IMeta {
