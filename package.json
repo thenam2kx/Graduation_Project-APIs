@@ -15,7 +15,7 @@
     "dev": "cross-env NODE_ENV=development nodemon src/server.ts",
     "preview": "cross-env NODE_ENV=production node dist/index.js",
     "start": "node dist/index.js",
-    "start:debug": "nodemon --inspect=9229 -e ts,tsx --exec node -r ts-node/register ./src/server.ts",
+    "start:debug": "nodemon --inspect=9229 -e ts,tsx --exec node -r tsconfig-paths/register ./src/server.ts",
     "build": "rimraf ./dist && tsc --noCheck && tsc-alias",
     "lint": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "jest",
@@ -98,6 +98,7 @@
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.11",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.27.0"

@@ -73,6 +73,9 @@ const configEnv = {
     refreshTokenSecret: envVars.JWT_REFRESH_TOKEN_SECRET,
     refreshTokenExpires: envVars.JWT_REFRESH_TOKEN_EXPIRES
   },
+  cookie: {
+    secret: envVars.COOKIE_SECRET
+  },
   email: {
     enableVerify: envVars.ENABLE_SEND_EMAIL_VERIFY,
     host: envVars.EMAIL_HOST,

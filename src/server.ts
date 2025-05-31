@@ -1,6 +1,6 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import configViewEngine from '~/config/viewEngine'
+import configViewEngine from './config/viewEngine'
 import connection from './config/connection'
 import cors from 'cors'
 import { APIs_v1 } from './routes/v1'
@@ -23,7 +23,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 // config cookie parser
-app.use(cookieParser())
+app.use(cookieParser(configEnv.cookie.secret))
 
 // config request limiter
 app.use(requestLimiter)
