@@ -12,25 +12,20 @@ export interface IAuth {
 const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await authService.handleSignup(req.body as IAuth)
-    if (!result) {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-        statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình đăng ký',
-        error: {
-          code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình đăng ký'
-        }
+    if (result) {
+      sendApiResponse(res, StatusCodes.NO_CONTENT, {
+        statusCode: StatusCodes.NO_CONTENT,
+        message: 'Đăng ký thành công',
+        data: 'Đăng ký thành công'
       })
     } else {
-      sendApiResponse(res, StatusCodes.OK, {
-        statusCode: StatusCodes.OK,
-        message: 'Đăng ký thành công',
-        data: result
-      })
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình đăng ký')
     }
   } catch (error) {
+    const err = error as ErrorWithStatus
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
     next(customError)
   }
 }
@@ -40,25 +35,20 @@ const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
     const email: string = req.query.email as string
     const code: string = req.body.code
     const result = await authService.handleVerifyEmail({ email, code })
-    if (!result) {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-        statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình xác thực email',
-        error: {
-          code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình xác thực email'
-        }
-      })
-    } else {
-      sendApiResponse(res, StatusCodes.OK, {
-        statusCode: StatusCodes.OK,
+    if (result) {
+      sendApiResponse(res, StatusCodes.NO_CONTENT, {
+        statusCode: StatusCodes.NO_CONTENT,
         message: 'Xác thực email thành công',
         data: result
       })
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình xác thực email')
     }
   } catch (error) {
+    const err = error as ErrorWithStatus
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
     next(customError)
   }
 }
@@ -68,24 +58,19 @@ const reSendCode = async (req: Request, res: Response, next: NextFunction) => {
     const email: string = req.query.email as string
     const result = await authService.handleReSendCode(email)
     if (!result) {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-        statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình gửi lại mã xác thực',
-        error: {
-          code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình gửi lại mã xác thực'
-        }
-      })
-    } else {
-      sendApiResponse(res, StatusCodes.OK, {
-        statusCode: StatusCodes.OK,
+      sendApiResponse(res, StatusCodes.NO_CONTENT, {
+        statusCode: StatusCodes.NO_CONTENT,
         message: 'Gửi lại mã xác thực thành công',
         data: result
       })
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình gửi lại mã xác thực')
     }
   } catch (error) {
+    const err = error as ErrorWithStatus
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
     next(customError)
   }
 }
@@ -94,32 +79,75 @@ const signin = async (req: Request, res: Response, next: NextFunction) => {
   const data: IAuth = req.body as IAuth
   try {
     const result = await authService.handleSignin(data, res)
-    sendApiResponse(res, StatusCodes.OK, {
-      statusCode: StatusCodes.OK,
-      message: 'Đăng nhập thành công',
-      data: result
-    })
+    if (result) {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Đăng nhập thành công',
+        data: result
+      })
+    } else {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Email hoặc mật khẩu không đúng')
+    }
   } catch (error) {
-    // sendApiResponse(res, StatusCodes.UNAUTHORIZED, {
-    //   statusCode: StatusCodes.UNAUTHORIZED,
-    //   message: 'Đăng nhập thất bại',
-    //   error: {
-    //     code: StatusCodes.UNAUTHORIZED,
-    //     details: error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình đăng nhập'
-    //   }
-    // })
+    const err = error as ErrorWithStatus
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
     next(customError)
   }
 }
 
 const signout = async (req: Request, res: Response) => {
   res.clearCookie('refresh_token')
-  sendApiResponse(res, StatusCodes.OK, {
-    statusCode: StatusCodes.OK,
+  sendApiResponse(res, StatusCodes.NO_CONTENT, {
+    statusCode: StatusCodes.NO_CONTENT,
     message: 'Đăng xuất thành công'
   })
+}
+
+const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refreshToken = req.signedCookies['refresh_token']
+
+    if (!refreshToken) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Phiên làm việc không hợp lệ hoặc đã hết hạn')
+    }
+
+    const result = await authService.handleRefreshToken(refreshToken, res)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Làm mới token thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+const account = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id as string
+    const result = await authService.handleGetAccount(userId)
+    if (result) {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Lấy thông tin tài khoản thành công',
+        data: result
+      })
+    } else {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tài khoản')
+    }
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
 }
 
 export const authController = {
@@ -127,5 +155,7 @@ export const authController = {
   verifyEmail,
   reSendCode,
   signin,
-  signout
+  signout,
+  refreshToken,
+  account
 }
