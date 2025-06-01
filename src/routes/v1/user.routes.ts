@@ -7,7 +7,7 @@ const Router = express.Router()
 
 Router.route('/')
   .post(userValidation.createUserValidation, userController.createUser)
-  .get(userValidation.fetchAllUserValidation, verifyAccessToken, userController.fetchAllUser)
+  .get(userValidation.fetchAllUserValidation, userController.fetchAllUser)
 
 Router.route('/:userId')
   .get(userValidation.fetchInfoUserValidation, userController.fetchInfoUser)

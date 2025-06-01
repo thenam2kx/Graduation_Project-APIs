@@ -17,6 +17,9 @@ declare global {
     }
   }
 
+  interface ErrorWithStatus extends Error {
+    statusCode?: number
+  }
   interface IUser {
     _id: string
     email: string

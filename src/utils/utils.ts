@@ -48,6 +48,7 @@ interface ExistObjectOptions {
   checkNotDeleted?: boolean
   errorMessage?: string
   checkExisted?: boolean
+  statusCode?: StatusCodes
 }
 
 /**
@@ -64,7 +65,7 @@ export const isExistObject = async <T extends Omit<HydratedDocument<unknown>, 'd
   conditions: FilterQuery<T>,
   options: ExistObjectOptions = {}
 ): Promise<void> => {
-  const { checkNotDeleted = true, errorMessage = 'Object not found', checkExisted = false } = options
+  const { checkNotDeleted = true, errorMessage = 'Object not found', checkExisted = false, statusCode } = options
 
   const queryConditions: FilterQuery<T> = {
     ...conditions,
@@ -74,11 +75,11 @@ export const isExistObject = async <T extends Omit<HydratedDocument<unknown>, 'd
   const isExist = await model.exists(queryConditions)
 
   if (!isExist && !checkExisted) {
-    throw new ApiError(StatusCodes.NOT_FOUND, errorMessage)
+    throw new ApiError(statusCode ?? StatusCodes.NOT_FOUND, errorMessage)
   }
 
   if (isExist && checkExisted) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, errorMessage)
+    throw new ApiError(statusCode ?? StatusCodes.BAD_REQUEST, errorMessage)
   }
 }
 

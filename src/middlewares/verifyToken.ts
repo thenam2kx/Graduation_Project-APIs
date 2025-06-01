@@ -9,11 +9,11 @@ const verifyAccessToken = async (req: Request, res: Response, next: NextFunction
   const authHeader = req.headers['authorization']
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-      statusCode: StatusCodes.BAD_REQUEST,
+    sendApiResponse(res, StatusCodes.UNAUTHORIZED, {
+      statusCode: StatusCodes.UNAUTHORIZED,
       message: 'Thiếu token xác thực',
       error: {
-        code: StatusCodes.BAD_REQUEST,
+        code: StatusCodes.UNAUTHORIZED,
         details: 'Thiếu token xác thực'
       }
     })
@@ -53,11 +53,11 @@ const verifyAccessToken = async (req: Request, res: Response, next: NextFunction
       }
       next()
     } else {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-        statusCode: StatusCodes.BAD_REQUEST,
+      sendApiResponse(res, StatusCodes.UNAUTHORIZED, {
+        statusCode: StatusCodes.UNAUTHORIZED,
         message: 'Token không hợp lệ',
         error: {
-          code: StatusCodes.BAD_REQUEST,
+          code: StatusCodes.UNAUTHORIZED,
           details: 'Token không hợp lệ'
         }
       })
@@ -65,11 +65,11 @@ const verifyAccessToken = async (req: Request, res: Response, next: NextFunction
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
-    sendApiResponse(res, StatusCodes.FORBIDDEN, {
-      statusCode: StatusCodes.FORBIDDEN,
+    sendApiResponse(res, StatusCodes.UNAUTHORIZED, {
+      statusCode: StatusCodes.UNAUTHORIZED,
       message: 'Token không hợp lệ hoặc đã hết hạn',
       error: {
-        code: StatusCodes.FORBIDDEN,
+        code: StatusCodes.UNAUTHORIZED,
         details: 'Token không hợp lệ hoặc đã hết hạn'
       }
     })
