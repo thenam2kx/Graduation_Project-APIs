@@ -10,6 +10,7 @@ import { requestLimiter } from './middlewares/limiter'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import configEnv from './config/env'
+import path from 'path'
 
 const app = express()
 
@@ -33,6 +34,8 @@ app.use(helmet())
 
 //config template engine
 configViewEngine(app)
+
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')))
 
 app.use('/api/v1', APIs_v1)
 // config static file
