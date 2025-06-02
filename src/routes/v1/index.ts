@@ -6,6 +6,7 @@ import { discountsRoute } from './discounts.routes'
 import { cateblogRoute } from './blogcategory.routes'
 import { blogRoute } from './blog.routes'
 import { categoryRoute } from './category.routes'
+import { fileRoute } from './file.route'
 
 const Router = express.Router()
 
@@ -16,5 +17,6 @@ Router.use('/brand', brandRoute)
 Router.use('/discounts', discountsRoute)
 Router.use('/cateblog', cateblogRoute)
 Router.use('/categories', categoryRoute)
+Router.use('/files', fileRoute)
 
 export const APIs_v1 = Router

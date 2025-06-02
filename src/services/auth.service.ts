@@ -8,6 +8,9 @@ import configEnv from '~/config/env'
 import { Response } from 'express'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { createLogger } from '~/config/logger'
+
+const logger = createLogger(__filename)
 
 const handleSignup = async (data: IAuth) => {
   await isExistObject(
@@ -33,6 +36,7 @@ const handleSignup = async (data: IAuth) => {
       activationCode: verifyCode,
       author: result.fullName
     })
+    logger.info(`Tạo người dùng thành công: ${result.email}`)
     return 'Tạo người dùng thành công'
   } else {
     throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tạo người dùng, vui lòng thử lại sau')
