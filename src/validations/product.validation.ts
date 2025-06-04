@@ -22,23 +22,35 @@ const createProductValidation = async (req: Request, res: Response, next: NextFu
       'string.min': 'Tên sản phẩm tối thiểu 2 ký tự',
       'string.max': 'Tên sản phẩm tối đa 255 ký tự'
     }),
-    slug: Joi.string().required().trim().min(3).max(255).pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).messages({
-      'string.empty': 'Slug không được để trống',
-      'any.required': 'Slug là trường bắt buộc',
-      'string.pattern.base': 'Slug không hợp lệ (chỉ chữ thường, số và dấu gạch ngang)'
-    }),
+    slug: Joi.string()
+      .required()
+      .trim()
+      .min(3)
+      .max(255)
+      .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .messages({
+        'string.empty': 'Slug không được để trống',
+        'any.required': 'Slug là trường bắt buộc',
+        'string.pattern.base': 'Slug không hợp lệ (chỉ chữ thường, số và dấu gạch ngang)'
+      }),
     price: Joi.number().required().min(0).messages({
       'number.base': 'Giá sản phẩm phải là số',
       'number.min': 'Giá sản phẩm không được nhỏ hơn 0',
       'any.required': 'Giá sản phẩm là trường bắt buộc'
     }),
     description: Joi.string().optional().allow('').trim(),
-    categoryId: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/).messages({
-      'string.pattern.base': 'categoryId phải là ObjectId hợp lệ'
-    }),
-    brandId: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/).messages({
-      'string.pattern.base': 'brandId phải là ObjectId hợp lệ'
-    }),
+    categoryId: Joi.string()
+      .optional()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .messages({
+        'string.pattern.base': 'categoryId phải là ObjectId hợp lệ'
+      }),
+    brandId: Joi.string()
+      .optional()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .messages({
+        'string.pattern.base': 'brandId phải là ObjectId hợp lệ'
+      }),
     image: Joi.string().optional().uri().messages({
       'string.uri': 'image phải là URL hợp lệ'
     }),
@@ -46,10 +58,17 @@ const createProductValidation = async (req: Request, res: Response, next: NextFu
       'number.base': 'stock phải là số',
       'number.min': 'stock không được nhỏ hơn 0'
     }),
-    capacity: Joi.string().optional().allow('').trim(),
-    discountId: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/).messages({
-      'string.pattern.base': 'discountId phải là ObjectId hợp lệ'
+    capacity: Joi.number().required().min(0).messages({
+      'number.base': 'Dung tích sản phẩm phải là số',
+      'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0',
+      'any.required': 'Dung tích sản phẩm là trường bắt buộc'
     }),
+    discountId: Joi.string()
+      .optional()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .messages({
+        'string.pattern.base': 'discountId phải là ObjectId hợp lệ'
+      }),
     createdBy: metaDataRefSchema.optional(),
     updatedBy: metaDataRefSchema.optional(),
     deletedBy: metaDataRefSchema.optional()
@@ -144,7 +163,11 @@ const updateProductValidation = async (req: Request, res: Response, next: NextFu
       'number.base': 'stock phải là số',
       'number.min': 'stock không được nhỏ hơn 0'
     }),
-    capacity: Joi.string().optional().allow('').trim(),
+    capacity: Joi.number().required().min(0).messages({
+      'number.base': 'Dung tích sản phẩm phải là số',
+      'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0',
+      'any.required': 'Dung tích sản phẩm là trường bắt buộc'
+    }),
     discountId: Joi.string()
       .optional()
       .pattern(/^[0-9a-fA-F]{24}$/)
