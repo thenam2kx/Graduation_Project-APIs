@@ -8,6 +8,7 @@ import { blogRoute } from './blog.routes'
 import { categoryRoute } from './category.routes'
 import { fileRoute } from './file.route'
 import { productRoute } from './product.routes'
+import { productVariantRoute } from './productVariant.routes'
 
 const Router = express.Router()
 
@@ -18,6 +19,7 @@ Router.use('/brand', brandRoute)
 Router.use('/discounts', discountsRoute)
 Router.use('/cateblog', cateblogRoute)
 Router.use('/products', productRoute)
+Router.use('/variants', productVariantRoute)
 Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
 
