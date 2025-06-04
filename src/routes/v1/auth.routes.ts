@@ -1,9 +1,16 @@
 import express from 'express'
+import { authController } from '~/controllers/auth.controller'
+import verifyAccessToken from '~/middlewares/verifyToken'
+import { authValidation } from '~/validations/auth.validation'
 
 const Router = express.Router()
 
-Router.route('/').get((req, res) => {
-  res.send('Get all routes auth')
-})
+Router.route('/signup').post(authValidation.signupValidation, authController.signup)
+Router.route('/verify-email').post(authValidation.verifyValidation, authController.verifyEmail)
+Router.route('/resend-code').post(authValidation.reSendCodeValidation, authController.reSendCode)
+Router.route('/signin').post(authValidation.signinValidation, authController.signin)
+Router.route('/signout').post(verifyAccessToken, authController.signout)
+Router.route('/refresh-token').get(authController.refreshToken)
+Router.route('/account').get(verifyAccessToken, authController.account)
 
 export const authRoute = Router

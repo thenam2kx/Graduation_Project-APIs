@@ -1,25 +1,26 @@
-import { NextFunction, Request, Response } from 'express'
+import { NextFunction } from 'express'
+import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { userService } from '~/services/user.service'
+import { brandService } from '~/services/brand.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 
-const createUser = async (req: Request, res: Response, next: NextFunction) => {
+const createBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await userService.handleCreateUser(req.body)
+    const result = await brandService.handleCreateBrand(req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình tạo người dùng',
+        message: 'Có lỗi xảy ra trong quá trình tạo brand',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình tạo người dùng'
+          details: 'Có lỗi xảy ra trong quá trình tạo brand'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.CREATED, {
         statusCode: StatusCodes.CREATED,
-        message: 'Tạo người dùng thành công',
+        message: 'Tạo brand thành công',
         data: result
       })
     }
@@ -29,35 +30,39 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     next(customError)
   }
 }
-
-const fetchAllUser = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAllBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { current = '1', pageSize = '10', ...restQuery } = req.query
+    const { current, pageSize, qs } = req.query
+    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
+    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const parsedQs =
+      typeof qs === 'string'
+        ? qs
+        : Array.isArray(qs)
+          ? qs.join(',')
+          : typeof qs === 'object' && qs !== null
+            ? JSON.stringify(qs)
+            : ''
 
-    const parsedCurrentPage = parseInt(current as string, 10)
-    const parsedLimit = parseInt(pageSize as string, 10)
-
-    // convert restQuery to qs string
-    const queryString = new URLSearchParams(restQuery as Record<string, string>).toString()
-
-    const result = await userService.handleFetchAllUser({
+    const result = await brandService.handleFetchAllBrand({
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
-      qs: queryString
+      qs: parsedQs
     })
+
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình lấy danh sách người dùng',
+        message: 'Có lỗi xảy ra trong quá trình lấy danh sách brand',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình lấy danh sách người dùng'
+          details: 'Có lỗi xảy ra trong quá trình lấy danh sách brand'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy danh sách người dùng thành công',
+        message: 'Lấy danh sách brand thành công',
         data: result
       })
     }
@@ -67,24 +72,23 @@ const fetchAllUser = async (req: Request, res: Response, next: NextFunction) => 
     next(customError)
   }
 }
-
-const fetchInfoUser = async (req: Request, res: Response, next: NextFunction) => {
+const fetchBrandById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params
-    const result = await userService.handleFetchInfoUser(userId)
+    const { brandID } = req.params
+    const result = await brandService.handleFetchBrandById(brandID)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình lấy thông tin người dùng',
+        message: 'Không tìm thấy brand',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình lấy thông tin người dùng'
+          details: 'Không tìm thấy brand'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy thông tin người dùng thành công',
+        message: 'Lấy brand thành công',
         data: result
       })
     }
@@ -94,24 +98,23 @@ const fetchInfoUser = async (req: Request, res: Response, next: NextFunction) =>
     next(customError)
   }
 }
-
-const updateUser = async (req: Request, res: Response, next: NextFunction) => {
+const updateBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params
-    const result = await userService.handleUpdateUser(userId, req.body)
+    const { brandID } = req.params
+    const result = await brandService.handleUpdateBrand(brandID, req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình cập nhật người dùng',
+        message: 'Có lỗi xảy ra trong quá trình cập nhật Brand',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình cập nhật người dùng'
+          details: 'Có lỗi xảy ra trong quá trình cập nhật Brand'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Cập nhật người dùng thành công',
+        message: 'Cập nhật Brand thành công',
         data: result
       })
     }
@@ -122,23 +125,23 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
-const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+const deleteBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params
-    const result = await userService.handleDeleteUser(userId)
+    const { brandID } = req.params
+    const result = await brandService.handleDeleteBrand(brandID)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình xóa người dùng',
+        message: 'Có lỗi xảy ra trong quá trình xóa brand',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình xóa người dùng'
+          details: 'Có lỗi xảy ra trong quá trình xóa brand'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Xóa người dùng thành công',
+        message: 'Xóa brand thành công',
         data: result
       })
     }
@@ -148,11 +151,10 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
     next(customError)
   }
 }
-
-export const userController = {
-  createUser,
-  fetchAllUser,
-  fetchInfoUser,
-  updateUser,
-  deleteUser
+export const brandController = {
+  createBrand,
+  fetchAllBrand,
+  fetchBrandById,
+  updateBrand,
+  deleteBrand
 }

@@ -6,7 +6,8 @@ declare global {
       user?: {
         role: string
         email: string
-        name: string
+        // name: string
+        _id: string
       }
     }
 
@@ -16,6 +17,9 @@ declare global {
     }
   }
 
+  interface ErrorWithStatus extends Error {
+    statusCode?: number
+  }
   interface IUser {
     _id: string
     email: string

@@ -4,6 +4,9 @@ import { hashPassword, isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { createLogger } from '~/config/logger'
+
+const logger = createLogger(__filename)
 
 const handleCreateUser = async (data: IUser) => {
   await isExistObject(UserModel, { email: data.email }, { checkExisted: true, errorMessage: 'Người dùng đã tồn tại' })
@@ -20,6 +23,18 @@ const handleCreateUser = async (data: IUser) => {
 
 const handleFetchAllUser = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
   const { filter, sort, population } = aqp(qs)
+
+  if (filter.keyword) {
+    const keyword = String(filter.keyword).trim()
+    delete filter.keyword
+
+    if (keyword) {
+      filter.$or = [{ name: { $regex: keyword, $options: 'i' } }, { phone: { $regex: keyword, $options: 'i' } }]
+    }
+  }
+
+  logger.error('filter')
+
   delete filter.current
   delete filter.pageSize
 

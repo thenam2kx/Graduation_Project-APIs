@@ -10,10 +10,24 @@ const handleCreateBlog = async (data: IBlog) => {
   return result
 }
 
+// ...existing code...
 const handleFetchAllBlog = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
-  const { filter, sort, population } = aqp(qs)
-  delete filter.current
-  delete filter.pageSize
+  let filter: any = {}
+  let sort: any = {}
+  let population: any = undefined
+
+  // Nếu có từ khóa tìm kiếm
+  if (qs && typeof qs === 'string' && qs.trim() !== '') {
+    filter.$or = [{ title: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }]
+  } else {
+    // Nếu không có từ khóa thì parse filter như cũ
+    const aqpResult = aqp(qs)
+    filter = aqpResult.filter
+    sort = aqpResult.sort
+    population = aqpResult.population
+    delete filter.current
+    delete filter.pageSize
+  }
 
   const offset = (currentPage - 1) * limit
   const defaultLimit = limit ? limit : 10
@@ -38,6 +52,7 @@ const handleFetchAllBlog = async ({ currentPage, limit, qs }: { currentPage: num
     results
   }
 }
+// ...existing code...
 
 const handleFetchInfoBlog = async (blogId: string) => {
   const blog = await BlogModel.findById(blogId).lean().exec()

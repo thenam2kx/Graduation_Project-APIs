@@ -1,33 +1,31 @@
-import mongoose, { Schema } from 'mongoose'
+import mongoose from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
-
-export interface ICategory extends SoftDeleteDocument {
+import { Schema } from 'mongoose'
+export interface IBrand extends SoftDeleteDocument {
   name: string
-  description: string
   slug: string
-  icon: string
+  avatar?: string
   isPublic: boolean
   createdBy?: {
     _id: string
     email: string
   }
-  updatedBy?: {
+  updateBy?: {
     _id: string
     email: string
   }
 }
-const CategorySchema: Schema<ICategory> = new mongoose.Schema(
+const BrandSchema: Schema<IBrand> = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    description: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
-    icon: { type: String, required: false },
+    avatar: { type: String },
     isPublic: { type: Boolean, default: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }
     },
-    updatedBy: {
+    updateBy: {
       _id: { type: String },
       email: { type: String }
     },
@@ -42,13 +40,10 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
     strict: true
   }
 )
-
-// Override all methods
-CategorySchema.plugin(MongooseDelete, {
+BrandSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',
   deletedBy: true,
   deletedByType: String
 })
-
-const CategoryModel = mongoose.model<ICategory, SoftDeleteModel<ICategory>>('Category', CategorySchema)
-export default CategoryModel
+const BrandModel = mongoose.model<IBrand, SoftDeleteModel<IBrand>>('Brand', BrandSchema)
+export default BrandModel

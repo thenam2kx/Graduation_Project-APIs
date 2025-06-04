@@ -1,26 +1,36 @@
-import { Request, Response, NextFunction } from 'express'
+import { NextFunction } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import Joi from 'joi'
 import ApiError from '~/utils/ApiError'
+import { Request, Response } from 'express'
 
 const objectIdSchema = Joi.string()
   .required()
   .trim()
   .pattern(/^[0-9a-fA-F]{24}$/)
-  .message('ID phải là ObjectId hợp lệ')
-
-const createCategoryValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    name: Joi.string().required().trim().min(2).max(255).messages({
-      'string.empty': 'Tên danh mục không được để trống',
-      'any.required': 'Tên danh mục là trường bắt buộc'
-    }),
-    description: Joi.string().optional().trim().max(500),
-    slug: Joi.string().optional().trim().max(255),
-    image: Joi.string().optional().trim().uri().max(500),
-    isPublic: Joi.boolean().optional()
+  .messages({
+    'string.pattern.base': 'ID phải là object hợp lệ',
+    'any.required': 'ID bắt buộc '
   })
-
+const createBrandValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    name: Joi.string().required().min(3).max(255).trim().messages({
+      'string.empty': 'Tên không được để trống',
+      'any.required': 'Tên bắt buộc'
+    }),
+    slug: Joi.string().required().trim().messages({
+      'string.empty': 'Slug không được để trống',
+      'any.required': 'Slug là trường bắt buộc'
+    }),
+    avatar: Joi.string().uri().optional().messages({
+      'string.uri': 'Ảnh đại diện phải là URL hợp lệ'
+    }),
+    isPublic: Joi.boolean().required().messages({
+      'any.required': 'Trạng thái là bắt buộc',
+      'boolean.base': 'Trạng thái phải là true hoặc false'
+    }),
+    categoryBrandId: objectIdSchema.label('categoryBrandId').optional()
+  })
   try {
     await schema.validateAsync(req.body, { abortEarly: false })
     next()
@@ -29,14 +39,12 @@ const createCategoryValidation = async (req: Request, res: Response, next: NextF
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
   }
 }
-
-const fetchAllCategoriesValidation = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAllBrandValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
     qs: Joi.string().optional()
   })
-
   try {
     await schema.validateAsync(req.query, { abortEarly: false })
     next()
@@ -45,10 +53,9 @@ const fetchAllCategoriesValidation = async (req: Request, res: Response, next: N
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
   }
 }
-
-const fetchCategoryByIdValidation = async (req: Request, res: Response, next: NextFunction) => {
+const fetchBrandByIdValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    categoryId: objectIdSchema
+    brandID: objectIdSchema
   })
 
   try {
@@ -59,14 +66,13 @@ const fetchCategoryByIdValidation = async (req: Request, res: Response, next: Ne
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
   }
 }
-
-const updateCategoryValidation = async (req: Request, res: Response, next: NextFunction) => {
+const updateBrandValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     name: Joi.string().optional().trim().min(2).max(255),
-    description: Joi.string().optional().trim().max(500),
     slug: Joi.string().optional().trim().max(255),
-    icon: Joi.string().optional().trim().uri().max(500),
-    isPublic: Joi.boolean().optional()
+    isPublic: Joi.boolean().optional(),
+    avatar: Joi.string().optional().uri(),
+    categoryBrandId: objectIdSchema.optional().label('categoryBrandId')
   })
 
   try {
@@ -78,9 +84,9 @@ const updateCategoryValidation = async (req: Request, res: Response, next: NextF
   }
 }
 
-const deleteCategoryValidation = async (req: Request, res: Response, next: NextFunction) => {
+const deleteBrandValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    categoryId: objectIdSchema
+    brandID: objectIdSchema
   })
 
   try {
@@ -92,10 +98,10 @@ const deleteCategoryValidation = async (req: Request, res: Response, next: NextF
   }
 }
 
-export const categoryValidation = {
-  createCategoryValidation,
-  fetchAllCategoriesValidation,
-  fetchCategoryByIdValidation,
-  updateCategoryValidation,
-  deleteCategoryValidation
+export const brandValidation = {
+  createBrandValidation,
+  fetchAllBrandValidation,
+  fetchBrandByIdValidation,
+  updateBrandValidation,
+  deleteBrandValidation
 }

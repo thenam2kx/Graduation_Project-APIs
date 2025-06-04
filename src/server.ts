@@ -1,6 +1,6 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import configViewEngine from '~/config/viewEngine'
+import configViewEngine from './config/viewEngine'
 import connection from './config/connection'
 import cors from 'cors'
 import { APIs_v1 } from './routes/v1'
@@ -10,6 +10,7 @@ import { requestLimiter } from './middlewares/limiter'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import configEnv from './config/env'
+import path from 'path'
 
 const app = express()
 
@@ -23,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 // config cookie parser
-app.use(cookieParser())
+app.use(cookieParser(configEnv.cookie.secret))
 
 // config request limiter
 app.use(requestLimiter)
@@ -33,6 +34,8 @@ app.use(helmet())
 
 //config template engine
 configViewEngine(app)
+
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')))
 
 app.use('/api/v1', APIs_v1)
 // config static file
