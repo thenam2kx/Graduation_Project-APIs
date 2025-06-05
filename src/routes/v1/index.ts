@@ -9,6 +9,8 @@ import { categoryRoute } from './category.routes'
 import { fileRoute } from './file.route'
 import { productRoute } from './product.routes'
 import { productVariantRoute } from './productVariant.routes'
+import { OrderItemsRoute } from './orderitem.routes'
+import { contactRoute } from './contact.routes'
 
 const Router = express.Router()
 
@@ -22,5 +24,7 @@ Router.use('/products', productRoute)
 Router.use('/variants', productVariantRoute)
 Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
+Router.use('/contacts', contactRoute)
+Router.use('/orderitems', OrderItemsRoute)
 
 export const APIs_v1 = Router

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import BrandModel, { IBrand } from '~/models/brand.model'
 import { isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
