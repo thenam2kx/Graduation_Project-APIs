@@ -6,7 +6,6 @@ import ProductModel, { IProduct } from '~/models/product.model'
 import { isExistObject, isValidMongoId } from '~/utils/utils'
 import '../models/category.model'
 import '../models/brand.model'
-import '../models/discounts.model'
 
 const handleCreateProduct = async (data: IProduct) => {
   await isExistObject(
@@ -48,7 +47,6 @@ const handleFetchAllProduct = async ({
     .sort(sort as any)
     .populate({ path: 'categoryId', model: 'Category', select: 'name' })
     .populate({ path: 'brandId', model: 'Brand', select: 'name' })
-    .populate({ path: 'discountId', model: 'Discounts', select: 'name' })
     .lean()
     .exec()
 
@@ -69,7 +67,6 @@ const handleFetchInfoProduct = async (productId: string) => {
   const product = await ProductModel.findById(productId)
     .populate({ path: 'categoryId', model: 'Category', select: 'name' })
     .populate({ path: 'brandId', model: 'Brand', select: 'name' })
-    .populate({ path: 'discountId', model: 'Discounts', select: 'name' })
     .lean()
     .exec()
 

@@ -63,12 +63,6 @@ const createProductValidation = async (req: Request, res: Response, next: NextFu
       'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0',
       'any.required': 'Dung tích sản phẩm là trường bắt buộc'
     }),
-    discountId: Joi.string()
-      .optional()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .messages({
-        'string.pattern.base': 'discountId phải là ObjectId hợp lệ'
-      }),
     createdBy: metaDataRefSchema.optional(),
     updatedBy: metaDataRefSchema.optional(),
     deletedBy: metaDataRefSchema.optional()
@@ -168,12 +162,6 @@ const updateProductValidation = async (req: Request, res: Response, next: NextFu
       'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0',
       'any.required': 'Dung tích sản phẩm là trường bắt buộc'
     }),
-    discountId: Joi.string()
-      .optional()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .messages({
-        'string.pattern.base': 'discountId phải là ObjectId hợp lệ'
-      }),
     createdBy: metaDataRefSchema.optional(),
     updatedBy: metaDataRefSchema.optional(),
     deletedBy: metaDataRefSchema.optional()
