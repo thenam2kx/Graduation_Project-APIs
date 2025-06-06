@@ -11,7 +11,6 @@ export interface IProduct extends SoftDeleteDocument {
   image: string
   stock: number
   capacity: number
-  discountId?: Types.ObjectId
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
   deletedByInfo?: { _id: string; email: string }
@@ -28,7 +27,6 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
     image: { type: String, required: true },
     stock: { type: Number, required: true },
     capacity: { type: Number, required: true },
-    discountId: { type: Schema.Types.ObjectId, ref: 'discounts', default: null },
     createdBy: {
       _id: { type: String },
       email: { type: String }
