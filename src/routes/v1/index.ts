@@ -11,6 +11,8 @@ import { productRoute } from './product.routes'
 import { productVariantRoute } from './productVariant.routes'
 import { OrderItemsRoute } from './orderitem.routes'
 import { contactRoute } from './contact.routes'
+import { attributeRoute } from './attribute.routes'
+import { variantAttributesRoute } from './variantAttribute.routes'
 
 const Router = express.Router()
 
@@ -22,6 +24,8 @@ Router.use('/discounts', discountsRoute)
 Router.use('/cateblog', cateblogRoute)
 Router.use('/products', productRoute)
 Router.use('/variants', productVariantRoute)
+Router.use('/attributes', attributeRoute)
+Router.use('/variantsat', variantAttributesRoute)
 Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
 Router.use('/contacts', contactRoute)
