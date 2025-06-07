@@ -3,13 +3,6 @@ import { StatusCodes } from 'http-status-codes'
 import Joi from 'joi'
 import ApiError from '~/utils/ApiError'
 
-// const objectIdSchema = Joi.string().trim().length(24).hex().required().messages({
-//   'string.base': 'ID phải là chuỗi',
-//   'string.length': 'ID phải có độ dài 24 ký tự',
-//   'string.hex': 'ID phải là chuỗi hex hợp lệ',
-//   'any.required': 'ID là trường bắt buộc'
-// })
-
 const createBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const createBlogSchema = Joi.object({
     title: Joi.string().required().min(3).max(255).trim().messages({
