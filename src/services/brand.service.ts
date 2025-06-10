@@ -7,8 +7,8 @@ import { StatusCodes } from 'http-status-codes'
 const handleCreateBrand = async (payload: IBrand) => {
   await isExistObject(BrandModel, { name: payload.name }, { checkExisted: true, errorMessage: `Tên brand ${payload.name} đã tồn tại.` });
 
-  let slug = payload.slug || createSlug(payload.name);
-  const baseSlug = slug;
+  let slug = payload.slug || createSlug(payload.name)
+  const baseSlug = slug
 
   while (await BrandModel.exists({ slug })) {
     slug = `${baseSlug}`
@@ -19,7 +19,7 @@ const handleCreateBrand = async (payload: IBrand) => {
     slug
   })
 
-  return newBrand.toObject();
+  return newBrand.toObject()
 }
 const handleFetchAllBrand = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
   let filter: any = {}
@@ -74,10 +74,9 @@ const handleUpdateBrand = async (brandId: string, data: Partial<IBrand>) => {
   if (data.name) {
     let slug = createSlug(data.name)
     const baseSlug = slug
-    let count = 1
 
     while (await BrandModel.exists({ slug, _id: { $ne: brandId } })) {
-      slug = `${baseSlug}-${count++}`
+      slug = `${baseSlug}`
     }
 
     data.slug = slug

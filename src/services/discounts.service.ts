@@ -13,7 +13,7 @@ const handleCreateDiscounts = async (data: IDiscounts) => {
     // Nếu là lỗi từ mongoose validation
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message)
-      throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, messages)
+      throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, messages.join(', '))
     }
 
     // Nếu là lỗi trùng mã (duplicate key)
