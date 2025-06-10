@@ -77,14 +77,27 @@ const handleFetchDiscountsById = async (discountId: string) => {
 
 const handleUpdateDiscounts = async (discountId: string, data: Partial<IDiscounts>) => {
   isValidMongoId(discountId)
-  const discount = await DiscountModel.findByIdAndUpdate(discountId, data, {
-    new: true,
-    runValidators: true
-  }).lean()
-  if (!discount) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  try {
+    const discount = await DiscountModel.findByIdAndUpdate(discountId, data, {
+      new: true,
+      runValidators: true
+    }).lean()
+    if (!discount) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+    }
+    return discount
+  } catch (error: any) {
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((err: any) => err.message)
+      throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, messages.join(', '))
+    }
+
+    if (error.code === 11000) {
+      throw new ApiError(StatusCodes.CONFLICT, 'Mã giảm giá đã tồn tại trong hệ thống')
+    }
+
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Lỗi cập nhật mã giảm giá')
   }
-  return discount
 }
 
 const handleDeleteDiscounts = async (discountId: string): Promise<any> => {

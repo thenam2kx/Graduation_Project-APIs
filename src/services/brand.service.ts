@@ -70,8 +70,12 @@ const handleFetchBrandById = async (categoryId: string) => {
 const handleUpdateBrand = async (brandId: string, data: Partial<IBrand>) => {
   isValidMongoId(brandId)
 
-  // Nếu đổi tên thì update lại slug
   if (data.name) {
+    const existed = await BrandModel.findOne({ name: data.name, _id: { $ne: brandId } })
+    if (existed) {
+      throw new ApiError(StatusCodes.CONFLICT, `Tên brand ${data.name} đã tồn tại.`)
+    }
+
     let slug = createSlug(data.name)
     const baseSlug = slug
 
