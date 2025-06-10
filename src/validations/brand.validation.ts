@@ -18,9 +18,8 @@ const createBrandValidation = async (req: Request, res: Response, next: NextFunc
       'string.empty': 'Tên không được để trống',
       'any.required': 'Tên bắt buộc'
     }),
-    slug: Joi.string().required().trim().messages({
-      'string.empty': 'Slug không được để trống',
-      'any.required': 'Slug là trường bắt buộc'
+    slug: Joi.forbidden().messages({
+      'any.unknown': 'Slug không được phép truyền vào'
     }),
     avatar: Joi.string().uri().optional().messages({
       'string.uri': 'Ảnh đại diện phải là URL hợp lệ'

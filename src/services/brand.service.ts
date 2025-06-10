@@ -1,12 +1,25 @@
 import BrandModel, { IBrand } from '~/models/brand.model'
-import { isExistObject, isValidMongoId } from '~/utils/utils'
+import { createSlug, isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-const handleCreateBrand = async (data: IBrand) => {
-  await isExistObject(BrandModel, { slug: data.slug }, { checkExisted: true, errorMessage: 'Slug đã tồn tại' })
-  const result = await BrandModel.create(data)
-  return result.toObject()
+
+const handleCreateBrand = async (payload: IBrand) => {
+  await isExistObject(BrandModel, { name: payload.name }, { checkExisted: true, errorMessage: `Tên brand ${payload.name} đã tồn tại.` });
+
+  let slug = payload.slug || createSlug(payload.name);
+  const baseSlug = slug;
+
+  while (await BrandModel.exists({ slug })) {
+    slug = `${baseSlug}`
+  }
+
+  const newBrand = await BrandModel.create({
+    ...payload,
+    slug
+  })
+
+  return newBrand.toObject();
 }
 const handleFetchAllBrand = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
   let filter: any = {}
@@ -54,17 +67,34 @@ const handleFetchBrandById = async (categoryId: string) => {
   }
   return category
 }
-const handleUpdateBrand = async (categoryId: string, data: Partial<IBrand>) => {
-  isValidMongoId(categoryId)
-  const category = await BrandModel.findByIdAndUpdate(categoryId, data, {
+const handleUpdateBrand = async (brandId: string, data: Partial<IBrand>) => {
+  isValidMongoId(brandId)
+
+  // Nếu đổi tên thì update lại slug
+  if (data.name) {
+    let slug = createSlug(data.name)
+    const baseSlug = slug
+    let count = 1
+
+    while (await BrandModel.exists({ slug, _id: { $ne: brandId } })) {
+      slug = `${baseSlug}-${count++}`
+    }
+
+    data.slug = slug
+  }
+
+  const brand = await BrandModel.findByIdAndUpdate(brandId, data, {
     new: true,
     runValidators: true
   }).lean()
-  if (!category) {
+
+  if (!brand) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Brand không tồn tại')
   }
-  return category
+
+  return brand
 }
+
 const handleDeleteBrand = async (categoryId: string): Promise<any> => {
   isValidMongoId(categoryId)
   const category = await BrandModel.findByIdAndDelete(categoryId)
