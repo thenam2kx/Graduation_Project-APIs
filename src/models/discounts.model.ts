@@ -9,10 +9,10 @@ export interface IDiscounts extends SoftDeleteDocument {
   value: number
   min_order_value: number
   max_discount_amount: number
-  status: boolean
-  applies_category?: string
-  applies_product?: string
-  applies_variant?: string
+  status: string
+  applies_category?: [string]
+  applies_product?: [string]
+  applies_variant?: [string]
   startDate: Date
   endDate: Date
   usage_limit: number
@@ -35,10 +35,15 @@ const DiscountSchema: Schema<IDiscounts> = new mongoose.Schema(
     value: { type: Number, required: true },
     min_order_value: { type: Number, default: 0 },
     max_discount_amount: { type: Number },
-    status: { type: Boolean, default: true },
-    applies_category: { type: String },
-    applies_product: { type: String },
-    applies_variant: { type: String },
+    status: {
+      type: String,
+      enum: ['Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc'],
+      required: true,
+      default: 'Sắp diễn ra'
+    },
+    applies_category: { type: [String], default: [] },
+    applies_product: { type: [String], default: [] },
+    applies_variant: { type: [String], default: [] },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     usage_limit: { type: Number, required: true },

@@ -8,26 +8,25 @@ import sendApiResponse from '~/utils/response.message'
 const createBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await brandService.handleCreateBrand(req.body)
+
     if (!result) {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+      return sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình tạo brand',
-        error: {
-          code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình tạo brand'
-        }
-      })
-    } else {
-      sendApiResponse(res, StatusCodes.CREATED, {
-        statusCode: StatusCodes.CREATED,
-        message: 'Tạo brand thành công',
-        data: result
+        message: 'Có lỗi xảy ra trong quá trình tạo brand'
       })
     }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
+
+    return sendApiResponse(res, StatusCodes.CREATED, {
+      statusCode: StatusCodes.CREATED,
+      message: 'Tạo brand thành công',
+      data: result
+    })
+  } catch (error: any) {
+    console.log('Lỗi bắt được trong controller:', error)
+    if (error instanceof ApiError) {
+      return next(error)
+    }
+    return next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Internal error'))
   }
 }
 const fetchAllBrand = async (req: Request, res: Response, next: NextFunction) => {
