@@ -7,7 +7,6 @@ export interface IVariantAttribute extends SoftDeleteDocument {
   value: string
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
-  deletedByInfo?: { _id: string; email: string }
 }
 
 const VariantAttributeSchema: Schema<IVariantAttribute> = new mongoose.Schema(
@@ -23,7 +22,7 @@ const VariantAttributeSchema: Schema<IVariantAttribute> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedByInfo: {
+    deletedBy: {
       _id: { type: String },
       email: { type: String }
     }
@@ -34,6 +33,15 @@ const VariantAttributeSchema: Schema<IVariantAttribute> = new mongoose.Schema(
     strict: true
   }
 )
+
+VariantAttributeSchema.virtual('attributes', {
+  ref: 'attributes',
+  localField: 'attributeId',
+  foreignField: '_id',
+  justOne: false
+})
+VariantAttributeSchema.set('toObject', { virtuals: true })
+VariantAttributeSchema.set('toJSON', { virtuals: true })
 
 VariantAttributeSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',
