@@ -13,6 +13,10 @@ const createBlogValidation = async (req: Request, res: Response, next: NextFunct
       'string.empty': 'Slug không được để trống',
       'any.required': 'Slug là trường bắt buộc'
     }),
+    image: Joi.string().required().trim().messages({
+      'string.empty': 'Ảnh không được để trống',
+      'any.required': 'Ảnh là trường bắt buộc'
+    }),
     content: Joi.string().required().trim().messages({
       'string.empty': 'Nội dung không được để trống',
       'any.required': 'Nội dung là trường bắt buộc'
@@ -75,6 +79,10 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
     title: Joi.string().optional().min(3).max(255).trim(),
     slug: Joi.string().optional().trim(),
     content: Joi.string().optional().trim(),
+    image: Joi.string().required().trim().messages({
+      'string.empty': 'Ảnh không được để trống',
+      'any.required': 'Ảnh là trường bắt buộc'
+    }),
     categoryBlogId: Joi.string().trim().length(24).hex().optional().label('categoryBlogId').messages({
       'string.base': 'categoryBlogId phải là chuỗi',
       'string.length': 'categoryBlogId phải có độ dài 24 ký tự',
