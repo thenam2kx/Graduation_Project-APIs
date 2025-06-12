@@ -9,7 +9,6 @@ export interface IProductVariant extends SoftDeleteDocument {
   image: string
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
-  deletedByInfo?: { _id: string; email: string }
 }
 
 const ProductVariantSchema: Schema<IProductVariant> = new mongoose.Schema(
@@ -27,7 +26,7 @@ const ProductVariantSchema: Schema<IProductVariant> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedByInfo: {
+    deletedBy: {
       _id: { type: String },
       email: { type: String }
     }
@@ -38,6 +37,15 @@ const ProductVariantSchema: Schema<IProductVariant> = new mongoose.Schema(
     strict: true
   }
 )
+
+ProductVariantSchema.virtual('variant_attributes', {
+  ref: 'variant_attributes',
+  localField: '_id',
+  foreignField: 'variantId',
+  justOne: false
+})
+ProductVariantSchema.set('toObject', { virtuals: true })
+ProductVariantSchema.set('toJSON', { virtuals: true })
 
 ProductVariantSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',

@@ -8,25 +8,24 @@ export interface IProduct extends SoftDeleteDocument {
   categoryId: Types.ObjectId
   brandId: Types.ObjectId
   price: number
-  image: string
+  image: string[]
   stock: number
   capacity: number
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
-  deletedByInfo?: { _id: string; email: string }
 }
 
 const ProductSchema: Schema<IProduct> = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, default: '' },
-    slug: { type: String, required: true },
-    categoryId: { type: Schema.Types.ObjectId, ref: 'categories', required: true },
-    brandId: { type: Schema.Types.ObjectId, ref: 'brand', required: true },
-    price: { type: Number, required: true },
-    image: { type: String, required: true },
-    stock: { type: Number, required: true },
-    capacity: { type: Number, required: true },
+    slug: { type: String, default: '' },
+    categoryId: { type: Schema.Types.ObjectId, ref: 'categories', required: false },
+    brandId: { type: Schema.Types.ObjectId, ref: 'brand', required: false },
+    price: { type: Number, required: false },
+    image: { type: [String], required: false },
+    stock: { type: Number, required: false },
+    capacity: { type: Number, required: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }
@@ -35,7 +34,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedByInfo: {
+    deletedBy: {
       _id: { type: String },
       email: { type: String }
     }
@@ -46,6 +45,15 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
     strict: true
   }
 )
+
+ProductSchema.virtual('variants', {
+  ref: 'product_variants',
+  localField: '_id',
+  foreignField: 'productId',
+  justOne: false
+})
+ProductSchema.set('toObject', { virtuals: true })
+ProductSchema.set('toJSON', { virtuals: true })
 
 ProductSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',
