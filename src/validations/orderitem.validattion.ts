@@ -99,29 +99,9 @@ const updateOrderItemValidation = async (req: Request, res: Response, next: Next
   }
 }
 
-const deleteOrderItemValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    orderItemId: Joi.string().trim().length(24).hex().required().label('orderItemId').messages({
-      'string.base': 'orderItemId phải là chuỗi',
-      'string.length': 'orderItemId phải có độ dài 24 ký tự',
-      'string.hex': 'orderItemId phải là chuỗi hex hợp lệ',
-      'any.required': 'orderItemId là trường bắt buộc'
-    })
-  })
-
-  try {
-    await schema.validateAsync(req.params, { abortEarly: false })
-    next()
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Dữ liệu không hợp lệ'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
-  }
-}
-
 export const orderItemValidation = {
   createOrderItemValidation,
   fetchAllOrderItemValidation,
   fetchInfoOrderItemValidation,
-  updateOrderItemValidation,
-  deleteOrderItemValidation
+  updateOrderItemValidation
 }

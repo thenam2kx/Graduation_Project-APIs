@@ -11,6 +11,5 @@ Router.route('/')
 Router.route('/:orderId')
   .get(orderItemValidation.fetchInfoOrderItemValidation, OrderItemController.fetchInfoOrderItem)
   .patch(orderItemValidation.updateOrderItemValidation, OrderItemController.updateOrderItem)
-  .delete(orderItemValidation.deleteOrderItemValidation, OrderItemController.deleteOrderItem)
 
 export const OrderItemsRoute = Router

@@ -173,6 +173,8 @@ const fetchBlogByCategoryValidation = async (req: Request, res: Response, next: 
   }
 }
 
+
+
 export const blogValidation = {
   createBlogValidation,
   fetchAllBlogValidation,

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { orderItemService } from '~/services/order.service'
+import { orderItemService } from '~/services/orderitem.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 
@@ -125,37 +125,9 @@ const updateOrderItem = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
-const deleteOrderItem = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { blogId } = req.params
-    const result = await orderItemService.handleDeleteOrderItem(blogId)
-    if (!result) {
-      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
-        statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình xóa đơn hàng',
-        error: {
-          code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình xóa đơn hàng'
-        }
-      })
-    } else {
-      sendApiResponse(res, StatusCodes.OK, {
-        statusCode: StatusCodes.OK,
-        message: 'Xóa đơn hàng thành công',
-        data: result
-      })
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
-    next(customError)
-  }
-}
-
 export const OrderItemController = {
   createOrderItem,
   fetchAllOrderItem,
   fetchInfoOrderItem,
-  updateOrderItem,
-  deleteOrderItem
+  updateOrderItem
 }
