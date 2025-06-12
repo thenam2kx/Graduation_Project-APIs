@@ -76,14 +76,6 @@ const handleUpdateOrderItem = async (
   return item
 }
 
-const handleDeleteOrderItem = async (id: string): Promise<IOrderItem> => {
-  const item = await OrderItemModel.findByIdAndDelete(id).lean().exec()
-  if (!item) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không thể xóa: mục đơn hàng không tồn tại')
-  }
-  return item
-}
-
 export const orderItemService: {
   handleCreateOrderItem: (data: IOrderItem) => Promise<IOrderItem>
   handleFetchAllOrderItems: (params: {
@@ -104,11 +96,9 @@ export const orderItemService: {
     id: string,
     data: Partial<IOrderItem>
   ) => Promise<{ acknowledged: boolean; modifiedCount: number; upsertedId: any; upsertedCount: number; matchedCount: number }>
-  handleDeleteOrderItem: (id: string) => Promise<IOrderItem>
 } = {
   handleCreateOrderItem,
   handleFetchAllOrderItems,
   handleFetchOrderItemInfo,
-  handleUpdateOrderItem,
-  handleDeleteOrderItem
+  handleUpdateOrderItem
 }

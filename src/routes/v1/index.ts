@@ -13,6 +13,8 @@ import { OrderItemsRoute } from './orderitem.routes'
 import { contactRoute } from './contact.routes'
 import { attributeRoute } from './attribute.routes'
 import { variantAttributesRoute } from './variantAttribute.routes'
+import { CartItemRoute } from './cartitem.routes'
+import { CartRoute } from './cart.routes'
 
 const Router = express.Router()
 
@@ -30,5 +32,7 @@ Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
 Router.use('/contacts', contactRoute)
 Router.use('/orderitems', OrderItemsRoute)
+Router.use('/cartitems', CartItemRoute)
+Router.use('/carts', CartRoute)
 
 export const APIs_v1 = Router

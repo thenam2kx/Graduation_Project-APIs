@@ -195,10 +195,30 @@ const deleteProductValidation = async (req: Request, res: Response, next: NextFu
   }
 }
 
+const fetchProductsByIdsValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    ids: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).required().messages({
+  'any.required': 'Tham số ids là bắt buộc',
+  'string.pattern.base': 'Mỗi ID trong ids phải là ObjectId hợp lệ'
+})
+  })
+
+  try {
+    await schema.validateAsync(req.query, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
+
 export const productValidation = {
   createProductValidation,
   fetchAllProductValidation,
   fetchInfoProductValidation,
   updateProductValidation,
-  deleteProductValidation
+  deleteProductValidation,
+  fetchProductsByIdsValidation
 }
