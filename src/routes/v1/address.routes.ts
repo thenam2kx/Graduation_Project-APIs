@@ -4,13 +4,25 @@ import { addressValidation } from '~/validations/address.validation'
 
 const Router = express.Router()
 
-Router.route('/')
-  .post(addressValidation.createAddressValidation, addressController.createAddress)
-  .get(addressValidation.fetchAllAddressValidation, addressController.fetchAllAddress)
+Router.route('/users/:userId')
+  .post(
+    addressValidation.validateUserIdParam,
+    addressValidation.createAddressValidation,
+    addressController.createAddress
+  )
+  .get(
+    addressValidation.validateUserIdParam,
+    addressValidation.fetchAllAddressValidation,
+    addressController.fetchAllAddressByUser
+  )
 
-Router.route('/:addressId')
-  .get(addressValidation.fetchInfoAddressValidation, addressController.fetchInfoAddress)
-  .patch(addressValidation.updateAddressValidation, addressController.updateAddress)
-  .delete(addressValidation.deleteAddressValidation, addressController.deleteAddress)
+Router.route('/users/:userId/:addressId')
+  .get(addressValidation.validateAddressIdParam, addressController.fetchInfoAddressByUser)
+  .patch(
+    addressValidation.validateAddressIdParam,
+    addressValidation.updateAddressValidation,
+    addressController.updateAddressByUser
+  )
+  .delete(addressValidation.validateAddressIdParam, addressController.deleteAddressByUser)
 
 export const addressRoute = Router

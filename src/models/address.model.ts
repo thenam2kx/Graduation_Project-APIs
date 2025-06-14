@@ -20,7 +20,7 @@ export interface IAddress extends SoftDeleteDocument {
 
 const AddressSchema: Schema<IAddress> = new mongoose.Schema(
   {
-    userId: { type: String, required: true },
+    userId: { type: String, required: true, index: true },
     province: { type: String, required: true },
     district: { type: String, required: true },
     ward: { type: String, required: true },
@@ -43,6 +43,17 @@ const AddressSchema: Schema<IAddress> = new mongoose.Schema(
     timestamps: true,
     versionKey: false,
     strict: true
+  }
+)
+
+AddressSchema.index(
+  {
+    userId: 1,
+    isPrimary: 1
+  },
+  {
+    unique: true,
+    partialFilterExpression: { isPrimary: true }
   }
 )
 

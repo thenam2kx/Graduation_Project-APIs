@@ -13,13 +13,47 @@ const metaDataRefSchema = Joi.object({
   email: Joi.string().optional().email().trim()
 })
 
-const createAddressValidation = async (req: Request, res: Response, next: NextFunction) => {
+const validateUserIdParam = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    userId: Joi.string()
+      .required()
+      .trim()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .message('userId không hợp lệ')
+  })
+  try {
+    await schema.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'userId không hợp lệ'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const validateAddressIdParam = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     userId: Joi.string()
       .required()
       .trim()
       .pattern(/^[0-9a-fA-F]{24}$/)
       .message('userId không hợp lệ'),
+    addressId: Joi.string()
+      .required()
+      .trim()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .message('addressId không hợp lệ')
+  })
+  try {
+    await schema.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Params không hợp lệ'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const createAddressValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
     province: Joi.string().required().trim().messages({
       'any.required': 'Tỉnh/Thành là trường bắt buộc'
     }),
@@ -32,7 +66,7 @@ const createAddressValidation = async (req: Request, res: Response, next: NextFu
     address: Joi.string().required().trim().messages({
       'any.required': 'Địa chỉ cụ thể là trường bắt buộc'
     }),
-    isPrimary: Joi.boolean().optional(),
+    isPrimary: Joi.boolean().optional().default(false),
     createdBy: metaDataRefSchema.optional(),
     updatedBy: metaDataRefSchema.optional(),
     deletedBy: metaDataRefSchema.optional()
@@ -62,30 +96,8 @@ const fetchAllAddressValidation = async (req: Request, res: Response, next: Next
   }
 }
 
-const fetchInfoAddressValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    addressId: Joi.string()
-      .required()
-      .trim()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .message('addressId không hợp lệ')
-  })
-  try {
-    await schema.validateAsync(req.params, { abortEarly: false })
-    next()
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Lỗi khi xác thực addressId'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
-  }
-}
-
 const updateAddressValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    userId: Joi.string()
-      .required()
-      .trim()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .message('userId không hợp lệ'),
     province: Joi.string().optional().trim(),
     district: Joi.string().optional().trim(),
     ward: Joi.string().optional().trim(),
@@ -93,7 +105,8 @@ const updateAddressValidation = async (req: Request, res: Response, next: NextFu
     isPrimary: Joi.boolean().optional(),
     updatedBy: metaDataRefSchema.optional(),
     deletedBy: metaDataRefSchema.optional(),
-    createdBy: metaDataRefSchema.forbidden()
+    createdBy: metaDataRefSchema.forbidden(),
+    userId: Joi.forbidden()
   })
   try {
     await schema.validateAsync(req.body, { abortEarly: false })
@@ -104,27 +117,10 @@ const updateAddressValidation = async (req: Request, res: Response, next: NextFu
   }
 }
 
-const deleteAddressValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    addressId: Joi.string()
-      .required()
-      .trim()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .message('addressId không hợp lệ')
-  })
-  try {
-    await schema.validateAsync(req.params, { abortEarly: false })
-    next()
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Lỗi khi xóa địa chỉ'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
-  }
-}
-
 export const addressValidation = {
+  validateUserIdParam,
+  validateAddressIdParam,
   createAddressValidation,
   fetchAllAddressValidation,
-  fetchInfoAddressValidation,
-  updateAddressValidation,
-  deleteAddressValidation
+  updateAddressValidation
 }

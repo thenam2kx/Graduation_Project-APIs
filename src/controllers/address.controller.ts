@@ -6,7 +6,8 @@ import sendApiResponse from '~/utils/response.message'
 
 const createAddress = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await addressService.handleCreateAddress(req.body)
+    const { userId } = req.params
+    const result = await addressService.handleCreateAddress(userId, req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -29,8 +30,9 @@ const createAddress = async (req: Request, res: Response, next: NextFunction) =>
   }
 }
 
-const fetchAllAddress = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAllAddressByUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { userId } = req.params
     const { current, pageSize, qs } = req.query
     const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
     const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
@@ -43,7 +45,7 @@ const fetchAllAddress = async (req: Request, res: Response, next: NextFunction) 
             ? JSON.stringify(qs)
             : ''
 
-    const result = await addressService.handleFetchAllAddress({
+    const result = await addressService.handleFetchAllAddressByUser(userId, {
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
       qs: parsedQs
@@ -71,10 +73,10 @@ const fetchAllAddress = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
-const fetchInfoAddress = async (req: Request, res: Response, next: NextFunction) => {
+const fetchInfoAddressByUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { addressId } = req.params
-    const result = await addressService.handleFetchInfoAddress(addressId)
+    const { userId, addressId } = req.params
+    const result = await addressService.handleFetchInfoAddressByUser(userId, addressId)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -97,10 +99,10 @@ const fetchInfoAddress = async (req: Request, res: Response, next: NextFunction)
   }
 }
 
-const updateAddress = async (req: Request, res: Response, next: NextFunction) => {
+const updateAddressByUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { addressId } = req.params
-    const result = await addressService.handleUpdateAddress(addressId, req.body)
+    const { userId, addressId } = req.params
+    const result = await addressService.handleUpdateAddressByUser(userId, addressId, req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -123,10 +125,10 @@ const updateAddress = async (req: Request, res: Response, next: NextFunction) =>
   }
 }
 
-const deleteAddress = async (req: Request, res: Response, next: NextFunction) => {
+const deleteAddressByUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { addressId } = req.params
-    const result = await addressService.handleDeleteAddress(addressId)
+    const { userId, addressId } = req.params
+    const result = await addressService.handleDeleteAddressByUser(userId, addressId)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -151,8 +153,8 @@ const deleteAddress = async (req: Request, res: Response, next: NextFunction) =>
 
 export const addressController = {
   createAddress,
-  fetchAllAddress,
-  fetchInfoAddress,
-  updateAddress,
-  deleteAddress
+  fetchAllAddressByUser,
+  fetchInfoAddressByUser,
+  updateAddressByUser,
+  deleteAddressByUser
 }

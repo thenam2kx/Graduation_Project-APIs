@@ -1,27 +1,41 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { isExistObject, isValidMongoId } from '~/utils/utils'
+import { isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import AddressModel, { IAddress } from '~/models/address.model'
 
-const handleCreateAddress = async (data: IAddress) => {
-  const result = await AddressModel.create(data)
+const handleCreateAddress = async (userId: string, data: Omit<IAddress, 'userId'>) => {
+  if (data.isPrimary) {
+    await AddressModel.updateMany({ userId, isPrimary: true }, { isPrimary: false })
+  }
+
+  const addressData = {
+    ...data,
+    userId
+  }
+
+  const result = await AddressModel.create(addressData)
   return result.toObject()
 }
 
-const handleFetchAllAddress = async ({
-  currentPage,
-  limit,
-  qs
-}: {
-  currentPage: number
-  limit: number
-  qs: string
-}) => {
+const handleFetchAllAddressByUser = async (
+  userId: string,
+  {
+    currentPage,
+    limit,
+    qs
+  }: {
+    currentPage: number
+    limit: number
+    qs: string
+  }
+) => {
   const { filter, sort, population } = aqp(qs)
   delete filter.current
   delete filter.pageSize
+
+  filter.userId = userId
 
   const offset = (+currentPage - 1) * +limit
   const defaultLimit = +limit || 10
@@ -47,37 +61,66 @@ const handleFetchAllAddress = async ({
   }
 }
 
-const handleFetchInfoAddress = async (addressId: string) => {
+const handleFetchInfoAddressByUser = async (userId: string, addressId: string) => {
   isValidMongoId(addressId)
-  const address = await AddressModel.findById(addressId).lean().exec()
+  isValidMongoId(userId)
+  const address = await AddressModel.findOne({
+    _id: addressId,
+    userId
+  })
+    .lean()
+    .exec()
   if (!address) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ!')
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ hoặc bạn không có quyền truy cập!')
   }
   return address
 }
 
-const handleUpdateAddress = async (addressId: string, data: Partial<IAddress>) => {
+const handleUpdateAddressByUser = async (userId: string, addressId: string, data: Partial<IAddress>) => {
   isValidMongoId(addressId)
-  const result = await AddressModel.updateOne({ _id: addressId }, { ...data })
-  if (!result) {
+  isValidMongoId(userId)
+
+  const existingAddress = await AddressModel.findOne({
+    _id: addressId,
+    userId
+  })
+  if (!existingAddress) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ hoặc bạn không có quyền truy cập!')
+  }
+
+  if (data.isPrimary === true) {
+    await AddressModel.updateMany({ userId, _id: { $ne: addressId }, isPrimary: true }, { isPrimary: false })
+  }
+
+  const result = await AddressModel.updateOne({ _id: addressId, userId }, { ...data })
+  if (result.matchedCount === 0) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ để cập nhật!')
   }
-  return result
+
+  const updatedAddress = await AddressModel.findById(addressId).lean()
+  return updatedAddress
 }
 
-const handleDeleteAddress = async (addressId: string): Promise<any> => {
+const handleDeleteAddressByUser = async (userId: string, addressId: string): Promise<any> => {
   isValidMongoId(addressId)
-  const address = await AddressModel.deleteById(addressId)
-  if (!address) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ để xóa!')
+  isValidMongoId(userId)
+
+  const existingAddress = await AddressModel.findOne({
+    _id: addressId,
+    userId
+  })
+  if (!existingAddress) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ hoặc bạn không có quyền truy cập!')
   }
+
+  const address = await AddressModel.deleteById(addressId)
   return address
 }
 
 export const addressService = {
   handleCreateAddress,
-  handleFetchAllAddress,
-  handleFetchInfoAddress,
-  handleUpdateAddress,
-  handleDeleteAddress
+  handleFetchAllAddressByUser,
+  handleFetchInfoAddressByUser,
+  handleUpdateAddressByUser,
+  handleDeleteAddressByUser
 }
