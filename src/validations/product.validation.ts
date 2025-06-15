@@ -14,10 +14,10 @@ const metaDataRefSchema = Joi.object({
 })
 
 const attributeValueSchema = Joi.object({
-  name: Joi.string().required().trim().messages({
-    'string.base': 'Tên thuộc tính phải là chuỗi',
-    'string.empty': 'Tên thuộc tính không được để trống',
-    'any.required': 'Tên thuộc tính là bắt buộc'
+  attributeId: Joi.string().required().trim().messages({
+    'string.base': 'ID thuộc tính phải là chuỗi',
+    'string.empty': 'ID thuộc tính không được để trống',
+    'any.required': 'ID thuộc tính là bắt buộc'
   }),
   value: Joi.string().required().trim().messages({
     'string.base': 'Giá trị thuộc tính phải là chuỗi',
@@ -42,16 +42,14 @@ const variantsSchema = Joi.object({
     'number.min': 'Số lượng tồn kho biến thể không được nhỏ hơn 0',
     'any.required': 'Số lượng tồn kho biến thể là bắt buộc'
   }),
-  image: Joi.string().optional().uri().messages({
+  image: Joi.string().uri().allow('', null).optional().messages({
     'string.uri': 'Ảnh biến thể phải là URL hợp lệ'
   }),
   attributes: Joi.array().items(attributeValueSchema).required().min(1).messages({
     'array.base': 'attributes phải là mảng',
     'array.min': 'Phải có ít nhất một thuộc tính',
     'any.required': 'attributes là bắt buộc'
-  }),
-  id: Joi.string().optional(),
-  name: Joi.string().optional()
+  })
 })
 
 const createProductValidation = async (req: Request, res: Response, next: NextFunction) => {
@@ -121,7 +119,7 @@ const fetchAllProductValidation = async (req: Request, res: Response, next: Next
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
     qs: Joi.string().optional()
-  })
+  }).unknown(true)
   try {
     await fetchAllProductValidationSchema.validateAsync(req.query, { abortEarly: false })
     next()
@@ -160,20 +158,18 @@ const updateProductValidation = async (req: Request, res: Response, next: NextFu
       'string.max': 'Tên sản phẩm tối đa 255 ký tự'
     }),
     slug: Joi.string()
-      .required()
+      .optional()
       .trim()
       .min(3)
       .max(255)
       .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .messages({
         'string.empty': 'Slug không được để trống',
-        'any.required': 'Slug là trường bắt buộc',
         'string.pattern.base': 'Slug không hợp lệ (chỉ chữ thường, số và dấu gạch ngang)'
       }),
-    price: Joi.number().required().min(0).messages({
+    price: Joi.number().optional().min(0).messages({
       'number.base': 'Giá sản phẩm phải là số',
-      'number.min': 'Giá sản phẩm không được nhỏ hơn 0',
-      'any.required': 'Giá sản phẩm là trường bắt buộc'
+      'number.min': 'Giá sản phẩm không được nhỏ hơn 0'
     }),
     description: Joi.string().optional().allow('').trim(),
     categoryId: Joi.string()
@@ -188,17 +184,16 @@ const updateProductValidation = async (req: Request, res: Response, next: NextFu
       .messages({
         'string.pattern.base': 'brandId phải là ObjectId hợp lệ'
       }),
-    image: Joi.string().optional().uri().messages({
+    image: Joi.array().items(Joi.string().uri()).optional().messages({
       'string.uri': 'image phải là URL hợp lệ'
     }),
     stock: Joi.number().optional().min(0).messages({
       'number.base': 'stock phải là số',
       'number.min': 'stock không được nhỏ hơn 0'
     }),
-    capacity: Joi.number().required().min(0).messages({
+    capacity: Joi.number().optional().min(0).messages({
       'number.base': 'Dung tích sản phẩm phải là số',
-      'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0',
-      'any.required': 'Dung tích sản phẩm là trường bắt buộc'
+      'number.min': 'Dung tích sản phẩm không được nhỏ hơn 0'
     }),
     variants: Joi.array().items(variantsSchema).optional().messages({
       'array.base': 'variants phải là mảng'

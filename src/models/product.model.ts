@@ -8,7 +8,7 @@ export interface IProduct extends SoftDeleteDocument {
   categoryId: Types.ObjectId
   brandId: Types.ObjectId
   price: number
-  image: string[]
+  image?: string[]
   stock: number
   capacity: number
   createdBy?: { _id: string; email: string }
