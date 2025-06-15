@@ -6,7 +6,7 @@ export interface IProductVariant extends SoftDeleteDocument {
   sku: string
   price: number
   stock: number
-  image: string
+  image?: string
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
 }
@@ -17,7 +17,7 @@ const ProductVariantSchema: Schema<IProductVariant> = new mongoose.Schema(
     sku: { type: String, required: true },
     price: { type: Number, required: true },
     stock: { type: Number, required: true },
-    image: { type: String, required: true },
+    image: { type: String, required: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }
