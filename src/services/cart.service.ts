@@ -1,8 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import CartModel, { ICart } from '~/models/cart.model'
+import CartItemModel, { ICartItem } from '~/models/cartitem.model'
+import ProductVariantModel from '~/models/product-variant.model'
+import ProductModel from '~/models/product.model'
+import mongoose from 'mongoose'
 
 // Tạo giỏ hàng mới
 const handleCreateCart = async (data: ICart): Promise<ICart> => {
@@ -15,70 +17,204 @@ const handleCreateCart = async (data: ICart): Promise<ICart> => {
   return result.toObject()
 }
 
-// Lấy danh sách giỏ hàng
-const handleFetchAllCart = async ({
-  currentPage,
-  limit,
-  qs
-}: {
-  currentPage: number
-  limit: number
-  qs: string
-}): Promise<{
-  meta: {
-    current: number
-    pageSize: number
-    pages: number
-    total: number
-  }
-  results: ICart[]
-}> => {
-  const { filter = {}, sort = {}, population } = aqp(qs)
-  delete filter.current
-  delete filter.pageSize
+const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
+  // // Kiểm tra xem giỏ hàng có tồn tại không
+  // const cart = await CartModel.findById(cartId)
+  // if (!cart) {
+  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Giỏ hàng không tồn tại')
+  // }
 
-  const offset = (currentPage - 1) * limit
-  const totalItems = await CartModel.countDocuments(filter)
-  const totalPages = Math.ceil(totalItems / limit)
+  // // Kiểm tra xem sản phẩm hoặc biến thể còn hàng trong kho không
+  // const product = await ProductModel.findById(item.productId)
+  // if (!product) {
+  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
+  // }
+  // const variant = await ProductVariantModel.findById(item.variantId)
+  // if (!variant) {
+  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Biến thể sản phẩm không tồn tại')
+  // }
+  // if (variant.stock < item.quantity) {
+  //   throw new ApiError(StatusCodes.BAD_REQUEST, 'Số lượng sản phẩm không đủ trong kho')
+  // }
+  // if (variant.price <= 0) {
+  //   throw new ApiError(StatusCodes.BAD_REQUEST, 'Giá sản phẩm không hợp lệ')
+  // }
+  // if (product.deleted || variant.deleted) {
+  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm hoặc biến thể đã bị xoá')
+  // }
 
-  const results = await CartModel.find(filter)
-    .skip(offset)
-    .limit(limit)
-    .sort(sort as any)
-    .populate(population)
-    .lean()
-    .exec()
+  // // Kiểm tra xem sản phẩm đã tồn tại trong giỏ hàng chưa nếu chưa thì thêm mới
+  // // Nếu sản phẩm đã tồn tại thì cập nhật số lượng
+  // const listCartItems = await CartItemModel.find({ cartId: cartId })
+  // if (
+  //   listCartItems.some((cartItem) => cartItem.productId === item.productId && cartItem.variantId === item.variantId)
+  // ) {
+  //   // Nếu sản phẩm đã tồn tại thì cập nhật số lượng
+  //   const existingItem = listCartItems.find(
+  //     (cartItem) =>
+  //       cartItem.productId.toString() === item.productId.toString() &&
+  //       cartItem.variantId.toString() === item.variantId.toString()
+  //   )
+  //   if (existingItem) {
+  //     if (existingItem.quantity + item.quantity > variant.stock) {
+  //       throw new ApiError(StatusCodes.BAD_REQUEST, 'Số lượng sản phẩm không đủ trong kho')
+  //     }
+  //     existingItem.quantity += item.quantity
+  //     await existingItem.save()
+  //     return existingItem
+  //   }
+  // }
 
-  return {
-    meta: {
-      current: currentPage,
-      pageSize: limit,
-      pages: totalPages,
-      total: totalItems
-    },
-    results
+  // const newItem = new CartItemModel({ ...item, cartId })
+  // await newItem.save()
+  // return newItem
+
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
+
+    // 1. Kiểm tra giỏ hàng tồn tại
+    const cart = await CartModel.findById(cartId).session(session)
+    if (!cart) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Giỏ hàng không tồn tại')
+    }
+
+    // 2. Lấy product và variant (trong cùng session)
+    const [product, variant] = await Promise.all([
+      ProductModel.findById(item.productId).session(session),
+      ProductVariantModel.findById(item.variantId).session(session)
+    ])
+    if (!product) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
+    }
+    if (!variant) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Biến thể sản phẩm không tồn tại')
+    }
+    if (product.deleted || variant.deleted) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm hoặc biến thể đã bị xoá')
+    }
+    if (variant.price <= 0) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Giá sản phẩm không hợp lệ')
+    }
+
+    // 3. Thêm mới hoặc cập nhật số lượng với upsert
+    const updatedItem = await CartItemModel.findOneAndUpdate(
+      { cartId, productId: item.productId, variantId: item.variantId },
+      { $inc: { quantity: item.quantity } },
+      {
+        new: true, // trả về document sau update
+        upsert: true, // nếu chưa có thì create mới
+        session,
+        runValidators: true, // chạy validator theo schema
+        setDefaultsOnInsert: true
+      }
+    )
+
+    // 4. Sau khi update, kiểm tra tồn kho
+    if (updatedItem.quantity > variant.stock) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, `Không đủ hàng trong kho. Tồn kho: ${variant.stock}`)
+    }
+
+    await session.commitTransaction()
+    return updatedItem
+  } catch (err) {
+    await session.abortTransaction()
+    throw err
+  } finally {
+    session.endSession()
   }
 }
 
 // Lấy chi tiết giỏ hàng theo ID
-const handleFetchCartInfo = async (id: string): Promise<ICart> => {
-  const item = await CartModel.findById(id).lean().exec()
-  if (!item) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giỏ hàng')
+const handleFetchCartInfo = async (id: string) => {
+  const cartInfo = await CartItemModel.find({ cartId: id }).populate('productId').populate('variantId').lean().exec()
+  if (!cartInfo || cartInfo.length === 0) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giỏ hàng hoặc giỏ hàng trống')
+  } else {
+    return cartInfo
   }
-  return item
 }
 
 // Cập nhật giỏ hàng
-const handleUpdateCart = async (
-  id: string,
-  data: Partial<ICart>
-): Promise<{ acknowledged: boolean; modifiedCount: number; matchedCount: number }> => {
-  const item = await CartModel.updateOne({ _id: id }, { $set: data })
-  if (!item.matchedCount) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không thể cập nhật: giỏ hàng không tồn tại')
+const handleUpdateCart = async (cartId: string, cartItemId: string, newQuantity: number) => {
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
+
+    // 1. Kiểm tra giỏ hàng tồn tại
+    const cart = await CartModel.findById(cartId).session(session)
+    if (!cart) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Giỏ hàng không tồn tại')
+    }
+
+    // 2. Kiểm tra mục giỏ hàng tồn tại và thuộc về giỏ
+    const cartItem = await CartItemModel.findById(cartItemId).session(session)
+    if (!cartItem || cartItem.cartId.toString() !== (cart._id as mongoose.Types.ObjectId).toString()) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Mục giỏ hàng không tồn tại')
+    }
+
+    // 3. Nếu newQuantity <= 0 → xoá mục đó
+    if (newQuantity <= 0) {
+      await cartItem.deleteOne({ session })
+      await session.commitTransaction()
+      return { message: 'Đã xoá mục khỏi giỏ hàng' }
+    }
+
+    // 4. Lấy variant để kiểm tra tồn kho
+    const variant = await ProductVariantModel.findById(cartItem.variantId).session(session)
+    if (!variant) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Biến thể sản phẩm không tồn tại')
+    }
+    if (variant.deleted) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Biến thể đã bị xoá')
+    }
+    if (newQuantity > variant.stock) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, `Không đủ hàng trong kho. Tồn kho hiện tại: ${variant.stock}`)
+    }
+
+    // 5. Cập nhật số lượng
+    cartItem.quantity = newQuantity
+    await cartItem.save({ session })
+
+    await session.commitTransaction()
+    return cartItem
+  } catch (err) {
+    await session.abortTransaction()
+    throw err
+  } finally {
+    session.endSession()
   }
-  return item
+}
+
+// Xoá sản phẩm khỏi giỏ hàng
+const handleDeleteProductFromCart = async (cartId: string) => {
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
+
+    // 1. Kiểm tra giỏ hàng tồn tại
+    const cart = await CartModel.findById(cartId).session(session)
+    if (!cart) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Giỏ hàng không tồn tại')
+    }
+
+    // 2. Xóa tất cả mục trong giỏ
+    const { deletedCount } = await CartItemModel.deleteMany({ cartId }).session(session)
+
+    // 3. Commit transaction
+    await session.commitTransaction()
+
+    return {
+      success: true,
+      message: `Đã xóa ${deletedCount} mục khỏi giỏ hàng.`,
+      deletedCount
+    }
+  } catch (err) {
+    await session.abortTransaction()
+    throw err
+  } finally {
+    session.endSession()
+  }
 }
 
 // Xoá giỏ hàng
@@ -90,10 +226,11 @@ const handleDeleteCart = async (id: string): Promise<{ acknowledged: boolean; de
   return result
 }
 
-export const CartService = {
+export const cartService = {
   handleCreateCart,
-  handleFetchAllCart,
   handleFetchCartInfo,
   handleUpdateCart,
-  handleDeleteCart
+  handleDeleteCart,
+  handleAddItemToCart,
+  handleDeleteProductFromCart
 }
