@@ -8,19 +8,35 @@ export interface ICartItem extends SoftDeleteDocument {
   variantId: string
   quantity: number
   price: number
-  createdAt: Date
-  updatedAt: Date
-  deletedAt?: Date
-  deleted: boolean
+  createdBy?: {
+    _id: string
+    email: string
+  }
+  updatedBy?: {
+    _id: string
+    email: string
+  }
 }
 
 const CartItemSchema = new Schema(
   {
     cartId: { type: String, required: true },
-    productId: { type: String, required: true },
-    variantId: { type: String, required: true },
+    productId: { type: String, required: true, ref: 'products' },
+    variantId: { type: String, required: true, ref: 'product_variants' },
     quantity: { type: Number, required: true, min: 1 },
-    price: { type: Number, required: true, min: 0 }
+    price: { type: Number, required: false, min: 0 },
+    createdBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    updatedBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    deletedBy: {
+      _id: { type: String },
+      email: { type: String }
+    }
   },
   {
     timestamps: true,
@@ -29,12 +45,7 @@ const CartItemSchema = new Schema(
   }
 )
 
-CartItemSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedAt: true,
-  deletedBy: true,
-  deletedByType: String
-})
+CartItemSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })
 
 const CartItemModel = mongoose.model<ICartItem, SoftDeleteModel<ICartItem>>('CartItem', CartItemSchema)
 export default CartItemModel

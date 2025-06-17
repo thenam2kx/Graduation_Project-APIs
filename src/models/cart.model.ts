@@ -2,17 +2,32 @@ import mongoose, { Schema } from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
 
 export interface ICart extends SoftDeleteDocument {
-  _id: string
   userId: string
-  createdAt: Date
-  updatedAt: Date
-  deletedAt?: Date
-  deleted: boolean
+  createdBy?: {
+    _id: string
+    email: string
+  }
+  updatedBy?: {
+    _id: string
+    email: string
+  }
 }
 
 const CartSchema = new Schema(
   {
-    userId: { type: String, required: true }
+    userId: { type: String, required: true },
+    createdBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    updatedBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    deletedBy: {
+      _id: { type: String },
+      email: { type: String }
+    }
   },
   {
     timestamps: true,
@@ -21,12 +36,7 @@ const CartSchema = new Schema(
   }
 )
 
-CartSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedAt: true,
-  deletedBy: true,
-  deletedByType: String
-})
+CartSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })
 
 const CartModel = mongoose.model<ICart, SoftDeleteModel<ICart>>('Cart', CartSchema)
 export default CartModel

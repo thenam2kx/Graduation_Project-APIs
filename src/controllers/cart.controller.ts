@@ -1,12 +1,12 @@
 import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { CartService } from '~/services/cart.service'
+import { cartService } from '~/services/cart.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 
 const createCart = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await CartService.handleCreateCart(req.body)
+    const result = await cartService.handleCreateCart(req.body)
 
     sendApiResponse(res, StatusCodes.CREATED, {
       statusCode: StatusCodes.CREATED,
@@ -14,45 +14,37 @@ const createCart = async (req: Request, res: Response, next: NextFunction) => {
       data: result
     })
   } catch (error) {
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error instanceof Error ? error.message : 'Lỗi tạo giỏ hàng'))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
-const fetchAllCart = async (req: Request, res: Response, next: NextFunction) => {
+const addItemToCart = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { current, pageSize, qs } = req.query
-    const currentPage = typeof current === 'string' ? parseInt(current, 10) : 1
-    const limit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const { cartId } = req.params
+    const result = await cartService.handleAddItemToCart(cartId, req.body)
 
-    const queryString =
-      typeof qs === 'string'
-        ? qs
-        : Array.isArray(qs)? qs.join(',') : typeof qs === 'object' && qs !== null ? JSON.stringify(qs) : ''
-    const result = await CartService.handleFetchAllCart({
-      currentPage,
-      limit,
-      qs: queryString
-    })
-
-    sendApiResponse(res, StatusCodes.OK, {
-      statusCode: StatusCodes.OK,
-      message: 'Lấy danh sách giỏ hàng thành công',
+    sendApiResponse(res, StatusCodes.CREATED, {
+      statusCode: StatusCodes.CREATED,
+      message: 'Thêm sản phẩm vào giỏ hàng thành công',
       data: result
     })
   } catch (error) {
-    next(
-      new ApiError(
-        StatusCodes.UNPROCESSABLE_ENTITY,
-        error instanceof Error ? error.message : 'Lỗi lấy danh sách giỏ hàng'
-      )
-    )
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
 const fetchInfoCart = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cartId } = req.params
-    const result = await CartService.handleFetchCartInfo(cartId)
+    const result = await cartService.handleFetchCartInfo(cartId)
 
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
@@ -60,19 +52,19 @@ const fetchInfoCart = async (req: Request, res: Response, next: NextFunction) =>
       data: result
     })
   } catch (error) {
-    next(
-      new ApiError(
-        StatusCodes.UNPROCESSABLE_ENTITY,
-        error instanceof Error ? error.message : 'Lỗi lấy thông tin giỏ hàng'
-      )
-    )
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
 const updateCart = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cartId } = req.params
-    const result = await CartService.handleUpdateCart(cartId, req.body)
+    const { cartItemId, newQuantity } = req.body
+    const result = await cartService.handleUpdateCart(cartId, cartItemId, newQuantity)
 
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
@@ -80,16 +72,18 @@ const updateCart = async (req: Request, res: Response, next: NextFunction) => {
       data: result
     })
   } catch (error) {
-    next(
-      new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error instanceof Error ? error.message : 'Lỗi cập nhật giỏ hàng')
-    )
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
 const deleteCart = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cartId } = req.params
-    const result = await CartService.handleDeleteCart(cartId)
+    const result = await cartService.handleDeleteCart(cartId)
 
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
@@ -97,14 +91,57 @@ const deleteCart = async (req: Request, res: Response, next: NextFunction) => {
       data: result
     })
   } catch (error) {
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, error instanceof Error ? error.message : 'Lỗi xoá giỏ hàng'))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
-export const CartController = {
+const clearCart = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { cartId } = req.params
+    const result = await cartService.handleDeleteProductFromCart(cartId)
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Xóa tất cả sản phẩm trong giỏ hàng thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+const fetchCartByUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params
+    const result = await cartService.handleFetchCartByUser(userId)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy giỏ hàng của người dùng thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+export const cartController = {
   createCart,
-  fetchAllCart,
   fetchInfoCart,
   updateCart,
-  deleteCart
+  deleteCart,
+  addItemToCart,
+  clearCart,
+  fetchCartByUser
 }
