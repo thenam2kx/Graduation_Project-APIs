@@ -17,11 +17,10 @@ export const createFlashSaleItemValidation = async (req: Request, res: Response,
       'string.hex': 'productId phải là chuỗi hex hợp lệ',
       'any.required': 'productId là trường bắt buộc'
     }),
-    variantId: Joi.string().trim().length(24).hex().required().label('variantId').messages({
+    variantId: Joi.string().trim().length(24).hex().optional().label('variantId').messages({
       'string.base': 'variantId phải là chuỗi',
       'string.length': 'variantId phải có độ dài 24 ký tự',
-      'string.hex': 'variantId phải là chuỗi hex hợp lệ',
-      'any.required': 'variantId là trường bắt buộc'
+      'string.hex': 'variantId phải là chuỗi hex hợp lệ'
     }),
     discountPercent: Joi.number().min(0).max(100).required().messages({
       'number.base': 'discountPercent phải là số',

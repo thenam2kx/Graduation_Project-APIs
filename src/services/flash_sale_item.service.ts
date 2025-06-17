@@ -6,17 +6,26 @@ import { Types } from 'mongoose'
 export interface IFlashSaleItem {
   flashSaleId: string
   productId: string
-  variantId: string
+  variantId?: string
   discountPercent: number
 }
 
 const handleCreateFlashSaleItem = async (data: IFlashSaleItem) => {
   // Kiểm tra trùng sản phẩm trong cùng flash sale
-  const existed = await FlashSaleItemModel.findOne({
+  const query: any = {
     flashSaleId: data.flashSaleId,
-    productId: data.productId,
-    variantId: data.variantId
-  })
+    productId: data.productId
+  }
+  
+  // Nếu có variantId, thêm vào điều kiện tìm kiếm
+  if (data.variantId) {
+    query.variantId = data.variantId
+  } else {
+    // Nếu không có variantId, kiểm tra xem đã có flash sale cho sản phẩm này chưa (không có variantId)
+    query.variantId = { $exists: false }
+  }
+  
+  const existed = await FlashSaleItemModel.findOne(query)
   if (existed) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Sản phẩm đã có trong flash sale này!')
   }
@@ -46,7 +55,11 @@ const handleFetchAllFlashSaleItems = async ({
     .skip(offset)
     .limit(defaultLimit)
     .populate({ path: 'productId', select: 'name price image' })
-    .populate({ path: 'variantId', select: 'sku price stock' })
+    .populate({ 
+      path: 'variantId', 
+      select: 'sku price stock',
+      options: { allowEmptyArray: true } 
+    })
     .lean()
     .exec()
 
@@ -67,7 +80,11 @@ const handleFetchInfoFlashSaleItem = async (itemId: string) => {
   }
   const item = await FlashSaleItemModel.findById(itemId)
     .populate({ path: 'productId', select: 'name price image' })
-    .populate({ path: 'variantId', select: 'sku price stock' })
+    .populate({ 
+      path: 'variantId', 
+      select: 'sku price stock',
+      options: { allowEmptyArray: true } 
+    })
     .lean()
     .exec()
   if (!item) {

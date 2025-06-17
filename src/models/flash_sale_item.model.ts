@@ -4,7 +4,7 @@ import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-de
 export interface IFlashSaleItem extends SoftDeleteDocument {
   flashSaleId: Types.ObjectId
   productId: Types.ObjectId
-  variantId: Types.ObjectId
+  variantId?: Types.ObjectId
   discountPercent: number
 }
 
@@ -12,7 +12,7 @@ const FlashSaleItemSchema: Schema<IFlashSaleItem> = new mongoose.Schema(
   {
     flashSaleId: { type: Schema.Types.ObjectId, ref: 'flash_sales', required: true },
     productId: { type: Schema.Types.ObjectId, ref: 'products', required: true },
-    variantId: { type: Schema.Types.ObjectId, ref: 'product_variants', required: true },
+    variantId: { type: Schema.Types.ObjectId, ref: 'product_variants', required: false },
     discountPercent: { type: Number, required: true }
   },
   {

@@ -1,10 +1,12 @@
 import express from 'express'
 import { flashSaleItemController } from '~/controllers/flash_sale_item.controller'
-// import { flashSaleItemValidation } from '~/validations/flash_sale_item.validation' // Nếu có validation, bỏ comment
+import { createFlashSaleItemValidation } from '~/validations/flash_sale_item.validation'
 
 const Router = express.Router()
 
-Router.route('/').post(flashSaleItemController.createFlashSaleItem).get(flashSaleItemController.fetchAllFlashSaleItems)
+Router.route('/')
+  .post(createFlashSaleItemValidation, flashSaleItemController.createFlashSaleItem)
+  .get(flashSaleItemController.fetchAllFlashSaleItems)
 
 Router.route('/:itemId')
   .get(flashSaleItemController.fetchInfoFlashSaleItem)
