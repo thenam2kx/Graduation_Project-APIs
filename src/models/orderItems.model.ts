@@ -7,19 +7,35 @@ export interface IOrderItem extends SoftDeleteDocument {
   variantId: string
   quantity: number
   price: number
-  createdAt: Date
-  updatedAt: Date
-  deletedAt: Date
-  deleted: boolean
+  createdBy?: {
+    _id: string
+    email: string
+  }
+  updatedBy?: {
+    _id: string
+    email: string
+  }
 }
 
 const OrderItemSchema = new Schema(
   {
-    orderId: { type: String, required: true },
-    productId: { type: String, required: true },
-    variantId: { type: String, required: true },
+    orderId: { type: Schema.Types.ObjectId, ref: 'orders', required: true },
+    productId: { type: Schema.Types.ObjectId, ref: 'products', required: true },
+    variantId: { type: Schema.Types.ObjectId, ref: 'product_variants', required: true },
     quantity: { type: Number, required: true, min: 1 },
-    price: { type: Number, required: true, min: 0 }
+    price: { type: Number, required: true, min: 0 },
+    createdBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    updatedBy: {
+      _id: { type: String },
+      email: { type: String }
+    },
+    deletedBy: {
+      _id: { type: String },
+      email: { type: String }
+    }
   },
   {
     timestamps: true,

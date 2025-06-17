@@ -10,12 +10,12 @@ import { fileRoute } from './file.route'
 import { notificationRoute } from './notification.routes'
 import { productRoute } from './product.routes'
 import { productVariantRoute } from './product-variant.routes'
-import { OrderItemsRoute } from './orderitem.routes'
 import { contactRoute } from './contact.routes'
 import { attributeRoute } from './attribute.routes'
 import { variantAttributesRoute } from './variantAttribute.routes'
 import { CartItemRoute } from './cartitem.routes'
 import { CartRoute } from './cart.routes'
+import { orderRoute } from './order.route'
 
 const Router = express.Router()
 
@@ -33,7 +33,7 @@ Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
 Router.use('/notifications', notificationRoute)
 Router.use('/contacts', contactRoute)
-Router.use('/orderitems', OrderItemsRoute)
+Router.use('/orders', orderRoute)
 Router.use('/cartitems', CartItemRoute)
 Router.use('/carts', CartRoute)
 
