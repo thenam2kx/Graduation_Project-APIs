@@ -16,6 +16,9 @@ import { variantAttributesRoute } from './variantAttribute.routes'
 import { CartItemRoute } from './cartitem.routes'
 import { CartRoute } from './cart.routes'
 import { orderRoute } from './order.route'
+import { flashSaleRoute } from './flash_sale.routes'
+import { flashSaleItemRoute } from './flash_sale_item.routes'
+import { cronJobRoute } from './cron_job.routes'
 
 const Router = express.Router()
 
@@ -36,5 +39,8 @@ Router.use('/contacts', contactRoute)
 Router.use('/orders', orderRoute)
 Router.use('/cartitems', CartItemRoute)
 Router.use('/carts', CartRoute)
+Router.use('/flashsales', flashSaleRoute)
+Router.use('/flashsales-item', flashSaleItemRoute)
+Router.use('/cron-jobs', cronJobRoute)
 
 export const APIs_v1 = Router

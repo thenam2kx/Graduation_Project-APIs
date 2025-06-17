@@ -11,6 +11,12 @@ export interface IProduct extends SoftDeleteDocument {
   image?: string[]
   stock: number
   capacity: number
+  isInFlashSale?: boolean
+  flashSaleId?: string
+  flashSalePrice?: number
+  flashSaleQuantity?: number
+  flashSaleStartDate?: Date
+  flashSaleEndDate?: Date
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
 }
@@ -26,6 +32,13 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
     image: { type: [String], required: false },
     stock: { type: Number, required: false },
     capacity: { type: Number, required: false },
+    // Các trường liên quan đến flash sale
+    isInFlashSale: { type: Boolean, default: false },
+    flashSaleId: { type: String },
+    flashSalePrice: { type: Number },
+    flashSaleQuantity: { type: Number },
+    flashSaleStartDate: { type: Date },
+    flashSaleEndDate: { type: Date },
     createdBy: {
       _id: { type: String },
       email: { type: String }
