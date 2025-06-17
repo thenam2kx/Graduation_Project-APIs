@@ -154,10 +154,72 @@ const deleteFlashSale = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
+// Kích hoạt flash sale
+const activateFlashSale = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { flashSaleId } = req.params
+    const result = await flashSaleService.handleActivateFlashSale(flashSaleId)
+    if (!result) {
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Có lỗi xảy ra trong quá trình kích hoạt flash sale!',
+        error: {
+          code: StatusCodes.BAD_REQUEST,
+          details: 'Có lỗi xảy ra trong quá trình kích hoạt flash sale!'
+        }
+      })
+    } else {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Kích hoạt flash sale thành công!',
+        data: result
+      })
+    }
+  } catch (error) {
+    const err = error as Error & { statusCode?: number }
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+// Hủy kích hoạt flash sale
+const deactivateFlashSale = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { flashSaleId } = req.params
+    const result = await flashSaleService.handleDeactivateFlashSale(flashSaleId)
+    if (!result) {
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Có lỗi xảy ra trong quá trình hủy kích hoạt flash sale!',
+        error: {
+          code: StatusCodes.BAD_REQUEST,
+          details: 'Có lỗi xảy ra trong quá trình hủy kích hoạt flash sale!'
+        }
+      })
+    } else {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Hủy kích hoạt flash sale thành công!',
+        data: result
+      })
+    }
+  } catch (error) {
+    const err = error as Error & { statusCode?: number }
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const flashSaleController = {
   createFlashSale,
   fetchAllFlashSales,
   fetchInfoFlashSale,
   updateFlashSale,
-  deleteFlashSale
+  deleteFlashSale,
+  activateFlashSale,
+  deactivateFlashSale
 }

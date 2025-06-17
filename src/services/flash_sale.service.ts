@@ -95,10 +95,63 @@ const handleDeleteFlashSale = async (flashSaleId: string) => {
   return { message: 'Xóa flash sale thành công (soft-delete)' }
 }
 
+// Kích hoạt flash sale
+const handleActivateFlashSale = async (flashSaleId: string) => {
+  if (!Types.ObjectId.isValid(flashSaleId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'ID flash sale không hợp lệ')
+  }
+  
+  const flashSale = await FlashSaleModel.findById(flashSaleId).lean()
+  if (!flashSale) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Flash sale không tồn tại!')
+  }
+  
+  // Kiểm tra nếu flash sale đã kết thúc
+  if (new Date(flashSale.endDate) < new Date()) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Flash sale đã kết thúc, không thể kích hoạt!')
+  }
+  
+  // Gọi service xử lý kích hoạt flash sale
+  try {
+    // Import và sử dụng service từ flash_sale_cron.service.ts
+    const { flashSaleCronService } = require('./flash_sale_cron.service')
+    await flashSaleCronService.handleFlashSaleStart(flashSaleId)
+    
+    return { message: 'Kích hoạt flash sale thành công' }
+  } catch (error) {
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi kích hoạt flash sale')
+  }
+}
+
+// Hủy kích hoạt flash sale
+const handleDeactivateFlashSale = async (flashSaleId: string) => {
+  if (!Types.ObjectId.isValid(flashSaleId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'ID flash sale không hợp lệ')
+  }
+  
+  const flashSale = await FlashSaleModel.findById(flashSaleId).lean()
+  if (!flashSale) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Flash sale không tồn tại!')
+  }
+  
+  // Gọi service xử lý hủy kích hoạt flash sale
+  try {
+    // Import và sử dụng service từ flash_sale_cron.service.ts
+    const { flashSaleCronService } = require('./flash_sale_cron.service')
+    await flashSaleCronService.handleFlashSaleEnd(flashSaleId)
+    
+    return { message: 'Hủy kích hoạt flash sale thành công' }
+  } catch (error) {
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi hủy kích hoạt flash sale')
+  }
+}
+
 export const flashSaleService = {
   handleCreateFlashSale,
   handleFetchAllFlashSales,
   handleFetchInfoFlashSale,
   handleUpdateFlashSale,
-  handleDeleteFlashSale
+  handleDeleteFlashSale,
+  handleActivateFlashSale,
+  handleDeactivateFlashSale
 }

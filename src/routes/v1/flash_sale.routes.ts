@@ -10,4 +10,8 @@ Router.route('/:flashSaleId')
   .patch(flashSaleController.updateFlashSale)
   .delete(flashSaleController.deleteFlashSale)
 
+// Thêm routes để kích hoạt/hủy kích hoạt flash sale
+Router.route('/:flashSaleId/activate').post(flashSaleController.activateFlashSale)
+Router.route('/:flashSaleId/deactivate').post(flashSaleController.deactivateFlashSale)
+
 export const flashSaleRoute = Router
