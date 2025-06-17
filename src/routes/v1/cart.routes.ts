@@ -7,6 +7,8 @@ const Router = express.Router()
 
 Router.route('/').post(verifyAccessToken, cartValidation.createCartValidation, cartController.createCart)
 
+Router.route('/user/:userId').get(verifyAccessToken, cartController.fetchCartByUser)
+
 Router.route('/:cartId')
   .get(verifyAccessToken, cartValidation.fetchInfoCartValidation, cartController.fetchInfoCart)
   .post(verifyAccessToken, cartValidation.addItemToCartValidation, cartController.addItemToCart)

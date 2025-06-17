@@ -6,6 +6,11 @@ import ProductVariantModel from '~/models/product-variant.model'
 import ProductModel from '~/models/product.model'
 import mongoose from 'mongoose'
 
+const handleFetchCartByUser = async (userId: string) => {
+  const carts = await CartModel.findOne({ userId }).populate('userId', 'name email').lean().exec()
+  return carts
+}
+
 // Tạo giỏ hàng mới
 const handleCreateCart = async (data: ICart): Promise<ICart> => {
   const existing = await CartModel.findOne({ userId: data.userId })
@@ -232,5 +237,6 @@ export const cartService = {
   handleUpdateCart,
   handleDeleteCart,
   handleAddItemToCart,
-  handleDeleteProductFromCart
+  handleDeleteProductFromCart,
+  handleFetchCartByUser
 }
