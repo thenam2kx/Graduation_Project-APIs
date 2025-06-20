@@ -90,9 +90,32 @@ const updateStatusOrder = async (req: Request, res: Response, next: NextFunction
   }
 }
 
+const fetchItemOfOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params
+    const result = await orderService.handleFetchItemOfOrder(orderId)
+    if (result) {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Lấy sản phẩm trong đơn hàng thành công',
+        data: result
+      })
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình lấy sản phẩm trong đơn hàng')
+    }
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const orderController = {
   createOrder,
   fetchOrderInfo,
   updateStatusOrder,
-  fetchAllOrders
+  fetchAllOrders,
+  fetchItemOfOrder
 }

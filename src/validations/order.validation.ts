@@ -174,9 +174,29 @@ const updateStatusOrderValidation = async (req: Request, res: Response, next: Ne
   }
 }
 
+const fetchItemOfOrderValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const fetchItemOfOrderValidationSchema = Joi.object({
+    orderId: Joi.string().trim().length(24).hex().required().label('orderId').messages({
+      'string.base': 'orderId phải là chuỗi',
+      'string.length': 'orderId phải có độ dài 24 ký tự',
+      'string.hex': 'orderId phải là chuỗi hex hợp lệ',
+      'any.required': 'orderId là trường bắt buộc'
+    })
+  })
+  try {
+    await fetchItemOfOrderValidationSchema.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const orderValidation = {
   createOrderValidation,
   fetchOrderInfoValidation,
   fetchAllOrdersValidation,
-  updateStatusOrderValidation
+  updateStatusOrderValidation,
+  fetchItemOfOrderValidation
 }
