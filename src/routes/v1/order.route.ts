@@ -19,6 +19,12 @@ Router.route('/:orderId/status').patch(
   orderController.updateStatusOrder
 )
 
+Router.route('/:orderId/items').get(
+  verifyAccessToken,
+  orderValidation.fetchItemOfOrderValidation,
+  orderController.fetchItemOfOrder
+)
+
 Router.route('/by-user/:userId').get(
   verifyAccessToken,
   orderValidation.fetchAllOrdersValidation,

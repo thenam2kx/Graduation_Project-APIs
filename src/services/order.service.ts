@@ -257,9 +257,20 @@ const handleUpdateStatusOrder = async (orderId: string, status: string) => {
   return order
 }
 
+const handleFetchItemOfOrder = async (orderId: string) => {
+  const order = await OrderItemModel.find({ orderId }).populate('productId').populate('variantId').lean().exec()
+
+  if (!order) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
+  }
+
+  return order
+}
+
 export const orderService = {
   handleCreateOrder,
   handleFetchOrder,
   handleFetchAllOrders,
-  handleUpdateStatusOrder
+  handleUpdateStatusOrder,
+  handleFetchItemOfOrder
 }
