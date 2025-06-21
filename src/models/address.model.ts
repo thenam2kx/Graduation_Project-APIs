@@ -3,11 +3,11 @@ import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-de
 
 export interface IAddress extends SoftDeleteDocument {
   userId: string
-  province: string
-  district: string
-  ward: string
-  address: string
-  isPrimary: boolean
+  province?: string
+  district?: string
+  ward?: string
+  address?: string
+  isPrimary?: boolean
   createdBy?: {
     _id: string
     email: string
@@ -20,11 +20,11 @@ export interface IAddress extends SoftDeleteDocument {
 
 const AddressSchema: Schema<IAddress> = new mongoose.Schema(
   {
-    userId: { type: String, required: true, index: true },
-    province: { type: String, required: true },
-    district: { type: String, required: true },
-    ward: { type: String, required: true },
-    address: { type: String, required: true },
+    userId: { type: String, required: true },
+    province: { type: String },
+    district: { type: String },
+    ward: { type: String },
+    address: { type: String },
     isPrimary: { type: Boolean, default: false },
     createdBy: {
       _id: { type: String },
@@ -46,22 +46,8 @@ const AddressSchema: Schema<IAddress> = new mongoose.Schema(
   }
 )
 
-AddressSchema.index(
-  {
-    userId: 1,
-    isPrimary: 1
-  },
-  {
-    unique: true,
-    partialFilterExpression: { isPrimary: true }
-  }
-)
-
-AddressSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
-})
+// Override all methods
+AddressSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })
 
 const AddressModel = mongoose.model<IAddress, SoftDeleteModel<IAddress>>('addresses', AddressSchema)
 
