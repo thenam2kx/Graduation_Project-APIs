@@ -11,15 +11,32 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'string.hex': 'userId phải là chuỗi hex hợp lệ',
       'any.required': 'userId là trường bắt buộc'
     }),
-    addressId: Joi.string().trim().length(24).hex().required().label('addressId').messages({
+    addressId: Joi.string().trim().length(24).hex().optional().label('addressId').messages({
       'string.base': 'addressId phải là chuỗi',
       'string.length': 'addressId phải có độ dài 24 ký tự',
       'string.hex': 'addressId phải là chuỗi hex hợp lệ',
       'any.required': 'addressId là trường bắt buộc'
     }),
-    addressFree: Joi.string().optional().label('addressFree').messages({
-      'string.base': 'addressFree phải là chuỗi'
-    }),
+    addressFree: Joi.object({
+      province: Joi.string().required().messages({
+        'string.base': 'Tỉnh/Thành phố phải là chuỗi',
+        'any.required': 'province là bắt buộc'
+      }),
+      district: Joi.string().optional().messages({
+        'string.base': 'Huyện/Quận phải là chuỗi'
+      }),
+      ward: Joi.string().optional().messages({
+        'string.base': 'Xã/Phường phải là chuỗi'
+      }),
+      address: Joi.string().optional().messages({
+        'string.base': 'Địa chỉ nhà phải là chuỗi'
+      })
+    })
+      .optional()
+      .label('addressFree')
+      .messages({
+        'object.base': 'addressFree phải là một object'
+      }),
     totalPrice: Joi.number().required().min(0).messages({
       'number.base': 'totalPrice phải là số',
       'number.min': 'Tổng tiền phải lớn hơn hoặc bằng 0',
@@ -30,7 +47,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'number.min': 'Phí vận chuyển phải lớn hơn hoặc bằng 0',
       'any.required': 'shippingPrice là trường bắt buộc'
     }),
-    discountId: Joi.string().trim().length(24).hex().label('discountId').messages({
+    discountId: Joi.string().trim().length(24).hex().optional().label('discountId').messages({
       'string.base': 'discountId phải là chuỗi',
       'string.length': 'discountId phải có độ dài 24 ký tự',
       'string.hex': 'discountId phải là chuỗi hex hợp lệ',
@@ -50,11 +67,15 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.only': 'shippingMethod phải là một trong các giá trị: standard, express',
       'any.required': 'shippingMethod là trường bắt buộc'
     }),
-    paymentStatus: Joi.string().valid('pending', 'paid', 'failed').default('pending').label('paymentStatus').messages({
-      'string.base': 'paymentStatus phải là chuỗi',
-      'any.only': 'paymentStatus phải là một trong các giá trị: pending, paid, failed',
-      'any.required': 'paymentStatus là trường bắt buộc'
-    }),
+    paymentStatus: Joi.string()
+      .valid('unpaid', 'pending', 'paid', 'failed')
+      .default('pending')
+      .label('paymentStatus')
+      .messages({
+        'string.base': 'paymentStatus phải là chuỗi',
+        'any.only': 'paymentStatus phải là một trong các giá trị: unpaid, pending, paid, failed',
+        'any.required': 'paymentStatus là trường bắt buộc'
+      }),
     note: Joi.string().trim().max(500).label('note').messages({
       'string.base': 'note phải là chuỗi',
       'string.max': 'note không được vượt quá 500 ký tự',

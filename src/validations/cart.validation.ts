@@ -125,6 +125,33 @@ const clearCartValidation = async (req: Request, res: Response, next: NextFuncti
   }
 }
 
+const deleteItemFromCartValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    cartId: Joi.string().trim().length(24).hex().required().label('cartId').messages({
+      'string.base': 'cartId phải là chuỗi',
+      'string.length': 'cartId phải có độ dài 24 ký tự',
+      'string.hex': 'cartId phải là chuỗi hex hợp lệ',
+      'any.required': 'cartId là trường bắt buộc'
+    }),
+    itemId: Joi.string().trim().length(24).hex().required().label('itemId').messages({
+      'string.base': 'itemId phải là chuỗi',
+      'string.length': 'itemId phải có độ dài 24 ký tự',
+      'string.hex': 'itemId phải là chuỗi hex hợp lệ',
+      'any.required': 'itemId là trường bắt buộc'
+    })
+  })
+
+  try {
+    const { cartId, itemId } = req.params
+    await schema.validateAsync({ cartId, itemId }, { abortEarly: false, stripUnknown: true })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Lỗi khi xóa sản phẩm khỏi giỏ hàng'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 const fetchInfoCartValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     cartId: Joi.string().trim().length(24).hex().required().label('cartId').messages({
@@ -151,5 +178,6 @@ export const cartValidation = {
   deleteCartValidation,
   fetchInfoCartValidation,
   addItemToCartValidation,
-  clearCartValidation
+  clearCartValidation,
+  deleteItemFromCartValidation
 }

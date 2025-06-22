@@ -4,7 +4,12 @@ import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-de
 export interface IOrder extends SoftDeleteDocument {
   userId?: string
   addressId?: string
-  addressFree: string
+  addressFree?: {
+    province: string
+    district?: string
+    ward?: string
+    address?: string
+  }
   totalPrice?: number
   shippingPrice?: number
   discountId?: string
@@ -26,11 +31,19 @@ export interface IOrder extends SoftDeleteDocument {
 const OrderSchema: Schema<IOrder> = new mongoose.Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'users', required: true },
-    addressId: { type: Schema.Types.ObjectId, ref: 'addresses', required: true },
-    addressFree: { type: String, required: true },
+    addressId: { type: Schema.Types.ObjectId, ref: 'addresses', required: false },
+    addressFree: {
+      type: {
+        province: { type: String, required: true },
+        district: { type: String, required: false },
+        ward: { type: String, required: false },
+        address: { type: String, required: false }
+      },
+      required: false
+    },
     totalPrice: { type: Number, required: true },
     shippingPrice: { type: Number, required: true },
-    discountId: { type: Schema.Types.ObjectId, ref: 'Discounts', default: null },
+    discountId: { type: Schema.Types.ObjectId, ref: 'Discounts', required: false },
     status: { type: String, default: 'pending' },
     shippingMethod: { type: String, default: 'standard' },
     paymentMethod: { type: String, default: 'credit_card' },

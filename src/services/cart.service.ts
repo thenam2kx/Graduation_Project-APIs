@@ -23,57 +23,6 @@ const handleCreateCart = async (data: ICart): Promise<ICart> => {
 }
 
 const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
-  // // Kiểm tra xem giỏ hàng có tồn tại không
-  // const cart = await CartModel.findById(cartId)
-  // if (!cart) {
-  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Giỏ hàng không tồn tại')
-  // }
-
-  // // Kiểm tra xem sản phẩm hoặc biến thể còn hàng trong kho không
-  // const product = await ProductModel.findById(item.productId)
-  // if (!product) {
-  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
-  // }
-  // const variant = await ProductVariantModel.findById(item.variantId)
-  // if (!variant) {
-  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Biến thể sản phẩm không tồn tại')
-  // }
-  // if (variant.stock < item.quantity) {
-  //   throw new ApiError(StatusCodes.BAD_REQUEST, 'Số lượng sản phẩm không đủ trong kho')
-  // }
-  // if (variant.price <= 0) {
-  //   throw new ApiError(StatusCodes.BAD_REQUEST, 'Giá sản phẩm không hợp lệ')
-  // }
-  // if (product.deleted || variant.deleted) {
-  //   throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm hoặc biến thể đã bị xoá')
-  // }
-
-  // // Kiểm tra xem sản phẩm đã tồn tại trong giỏ hàng chưa nếu chưa thì thêm mới
-  // // Nếu sản phẩm đã tồn tại thì cập nhật số lượng
-  // const listCartItems = await CartItemModel.find({ cartId: cartId })
-  // if (
-  //   listCartItems.some((cartItem) => cartItem.productId === item.productId && cartItem.variantId === item.variantId)
-  // ) {
-  //   // Nếu sản phẩm đã tồn tại thì cập nhật số lượng
-  //   const existingItem = listCartItems.find(
-  //     (cartItem) =>
-  //       cartItem.productId.toString() === item.productId.toString() &&
-  //       cartItem.variantId.toString() === item.variantId.toString()
-  //   )
-  //   if (existingItem) {
-  //     if (existingItem.quantity + item.quantity > variant.stock) {
-  //       throw new ApiError(StatusCodes.BAD_REQUEST, 'Số lượng sản phẩm không đủ trong kho')
-  //     }
-  //     existingItem.quantity += item.quantity
-  //     await existingItem.save()
-  //     return existingItem
-  //   }
-  // }
-
-  // const newItem = new CartItemModel({ ...item, cartId })
-  // await newItem.save()
-  // return newItem
-
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
@@ -231,6 +180,17 @@ const handleDeleteCart = async (id: string): Promise<{ acknowledged: boolean; de
   return result
 }
 
+const handleDeleteItemFromCart = async (
+  cartId: string,
+  itemId: string
+): Promise<{ acknowledged: boolean; deletedCount: number }> => {
+  const result = await CartItemModel.deleteOne({ _id: itemId, cartId })
+  if (!result.deletedCount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không thể xoá: mục giỏ hàng không tồn tại')
+  }
+  return result
+}
+
 export const cartService = {
   handleCreateCart,
   handleFetchCartInfo,
@@ -238,5 +198,6 @@ export const cartService = {
   handleDeleteCart,
   handleAddItemToCart,
   handleDeleteProductFromCart,
-  handleFetchCartByUser
+  handleFetchCartByUser,
+  handleDeleteItemFromCart
 }

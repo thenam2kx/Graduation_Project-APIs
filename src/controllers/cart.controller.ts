@@ -136,6 +136,24 @@ const fetchCartByUser = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
+const deleteItemFromCart = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { cartId, itemId } = req.params
+    const result = await cartService.handleDeleteItemFromCart(cartId, itemId)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Xóa mục khỏi giỏ hàng thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const cartController = {
   createCart,
   fetchInfoCart,
@@ -143,5 +161,6 @@ export const cartController = {
   deleteCart,
   addItemToCart,
   clearCart,
-  fetchCartByUser
+  fetchCartByUser,
+  deleteItemFromCart
 }
