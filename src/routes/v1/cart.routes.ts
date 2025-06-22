@@ -15,4 +15,10 @@ Router.route('/:cartId')
   .patch(verifyAccessToken, cartValidation.updateCartValidation, cartController.updateCart)
   .delete(verifyAccessToken, cartValidation.clearCartValidation, cartController.clearCart)
 
+Router.route('/:cartId/items/:itemId').delete(
+  verifyAccessToken,
+  cartValidation.deleteItemFromCartValidation,
+  cartController.deleteItemFromCart
+)
+
 export const CartRoute = Router
