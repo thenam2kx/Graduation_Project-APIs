@@ -37,6 +37,8 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       .messages({
         'object.base': 'addressFree phải là một object'
       }),
+      Joi.allow(null)
+    ).optional(),
     totalPrice: Joi.number().required().min(0).messages({
       'number.base': 'totalPrice phải là số',
       'number.min': 'Tổng tiền phải lớn hơn hoặc bằng 0',
@@ -67,6 +69,15 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.only': 'shippingMethod phải là một trong các giá trị: standard, express',
       'any.required': 'shippingMethod là trường bắt buộc'
     }),
+    paymentMethod: Joi.string()
+      .valid('cash', 'vnpay', 'momo')
+      .default('cash')
+      .label('paymentMethod')
+      .messages({
+        'string.base': 'paymentMethod phải là chuỗi',
+        'any.only': 'paymentMethod phải là một trong các giá trị: cash, vnpay, momo',
+        'any.required': 'paymentMethod là trường bắt buộc'
+      }),
     paymentStatus: Joi.string()
       .valid('unpaid', 'pending', 'paid', 'failed')
       .default('pending')

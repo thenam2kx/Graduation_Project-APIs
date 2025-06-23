@@ -51,11 +51,13 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
   try {
     // 1. Validate các tham chiếu ngoại
     await isExistObject(UserModel, { _id: data.userId }, { checkExisted: false, errorMessage: 'User không tồn tại' })
-    await isExistObject(
-      AddressModel,
-      { _id: data.addressId },
-      { checkExisted: false, errorMessage: 'Address không tồn tại' }
-    )
+    if (data.addressId) {
+      await isExistObject(
+        AddressModel,
+        { _id: data.addressId },
+        { checkExisted: false, errorMessage: 'Address không tồn tại' }
+      )
+    }
     let discountPercent = 0
     let discountAmount = 0
     if (data.discountId) {

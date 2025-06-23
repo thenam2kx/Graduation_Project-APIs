@@ -53,10 +53,10 @@ app.use(errorHandlingMiddleware)
     await connection()
     app.listen(configEnv.app.port, configEnv.app.host, () => {
       console.log(`🚀 Sever running on http://${configEnv.app.host}:${configEnv.app.port}`)
-      
+
       // Khởi tạo các tác vụ cron cho flash sale
       initFlashSaleCronJobs()
-      
+
       // Khởi tạo tất cả cron jobs từ database
       const { cronJobService } = require('./services/cron_job.service')
       cronJobService.initAllCronJobs()

@@ -19,6 +19,8 @@ import { orderRoute } from './order.route'
 import { flashSaleRoute } from './flash_sale.routes'
 import { flashSaleItemRoute } from './flash_sale_item.routes'
 import { cronJobRoute } from './cron_job.routes'
+import { wishlistRoute } from './wishlist.routes'
+import { vnpayRoute } from './vnpay.routes'
 
 const Router = express.Router()
 
@@ -42,5 +44,7 @@ Router.use('/carts', CartRoute)
 Router.use('/flashsales', flashSaleRoute)
 Router.use('/flashsales-item', flashSaleItemRoute)
 Router.use('/cron-jobs', cronJobRoute)
+Router.use('/wishlists', wishlistRoute)
+Router.use('/vnpay', vnpayRoute)
 
 export const APIs_v1 = Router
