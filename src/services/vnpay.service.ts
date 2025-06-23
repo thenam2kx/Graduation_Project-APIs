@@ -13,11 +13,33 @@ export const createVnpayPaymentUrl = ({
   orderInfo: string
   ipAddr: string
 }) => {
-  const date = new Date()
-  const createDate = date
-    .toISOString()
-    .replace(/[-:TZ.]/g, '')
-    .slice(0, 14)
+  try {
+    // Validation
+    if (!amount || amount <= 0) {
+      throw new Error('Số tiền không hợp lệ')
+    }
+    if (!orderId) {
+      throw new Error('Mã đơn hàng không hợp lệ')
+    }
+    if (!orderInfo) {
+      throw new Error('Thông tin đơn hàng không hợp lệ')
+    }
+    if (!vnpayConfig.tmnCode || !vnpayConfig.hashSecret) {
+      throw new Error('Cấu hình VNPay chưa đầy đủ')
+    }
+
+    console.log('VNPay Config:', {
+      tmnCode: vnpayConfig.tmnCode,
+      url: vnpayConfig.url,
+      returnUrl: vnpayConfig.returnUrl,
+      hasSecret: !!vnpayConfig.hashSecret
+    })
+
+    const date = new Date()
+    const createDate = date
+      .toISOString()
+      .replace(/[-:TZ.]/g, '')
+      .slice(0, 14)
 
   // Sử dụng đúng biến từ config
   const vnp_Params: Record<string, string> = {
@@ -68,7 +90,18 @@ export const createVnpayPaymentUrl = ({
     .join('&')
 
   const paymentUrl = `${vnpayConfig.url}?${queryString}`
+  
+  console.log('Final payment URL:', paymentUrl)
+  
+  if (!paymentUrl || !paymentUrl.includes('vnp_SecureHash')) {
+    throw new Error('Không thể tạo URL thanh toán hợp lệ')
+  }
+  
   return paymentUrl
+  } catch (error) {
+    console.error('Error creating VNPay payment URL:', error)
+    throw error
+  }
 }
 
 export const verifyVnpayReturn = (vnpayParams: any) => {
@@ -79,20 +112,21 @@ export const verifyVnpayReturn = (vnpayParams: any) => {
   delete paramsCopy['vnp_SecureHash']
   delete paramsCopy['vnp_SecureHashType']
 
-  // Sắp xếp tham số theo alphabet
+  // Sắp xếp tham số theo alphabet và decode URL
   const sortedParams = Object.keys(paramsCopy)
     .sort()
     .reduce(
       (acc, key) => {
         if (paramsCopy[key] !== '' && paramsCopy[key] !== null && paramsCopy[key] !== undefined) {
-          acc[key] = paramsCopy[key]
+          // Decode URL cho các giá trị
+          acc[key] = decodeURIComponent(paramsCopy[key])
         }
         return acc
       },
       {} as Record<string, string>
     )
 
-  // Tạo chuỗi ký theo chuẩn VNPAY
+  // Tạo chuỗi ký theo chuẩn VNPAY - KHÔNG encode lại
   const signData = Object.keys(sortedParams)
     .map((key) => `${key}=${sortedParams[key]}`)
     .join('&')
