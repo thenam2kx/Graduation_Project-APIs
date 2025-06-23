@@ -13,6 +13,12 @@ Router.route('/:orderId').get(
   orderController.fetchOrderInfo
 )
 
+Router.route('/:orderId/cancel').patch(
+  verifyAccessToken,
+  orderValidation.cancelOrderValidation,
+  orderController.cancelOrder
+)
+
 Router.route('/:orderId/status').patch(
   verifyAccessToken,
   orderValidation.updateStatusOrderValidation,

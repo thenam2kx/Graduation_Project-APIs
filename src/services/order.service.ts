@@ -142,6 +142,10 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }))
     const orderItems = await OrderItemModel.insertMany(itemsToInsert, { session })
 
+    for (const it of data.items) {
+      await ProductVariantModel.updateOne({ _id: it.variantId }, { $inc: { stock: -it.quantity } }, { session })
+    }
+
     // 6. Commit
     await session.commitTransaction()
     session.endSession()
@@ -269,10 +273,57 @@ const handleFetchItemOfOrder = async (orderId: string) => {
   return order
 }
 
+const handleCancelOrder = async (orderId: string) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  try {
+    // Tìm đơn hàng theo ID
+    const order = await OrderModel.findById(orderId).session(session)
+    if (!order) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Đơn hàng không tồn tại')
+    }
+
+    // Kiểm tra trạng thái đơn hàng
+    if (order.status !== 'pending' && order.status !== 'processing') {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng ở trạng thái hiện tại')
+    }
+
+    // Cập nhật trạng thái đơn hàng thành 'cancelled'
+    order.status = 'cancelled'
+    await order.save({ session })
+
+    // Lấy tất cả các mục trong đơn hàng
+    const orderItems = await OrderItemModel.find({ orderId: order._id }).session(session)
+
+    // Cộng lại số lượng sản phẩm vào kho
+    for (const item of orderItems) {
+      await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
+    }
+
+    await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
+
+    // Commit transaction
+    await session.commitTransaction()
+    session.endSession()
+
+    return { message: 'Đơn hàng đã được hủy thành công', order }
+  } catch (err: any) {
+    await session.abortTransaction()
+    session.endSession()
+
+    // Xử lý lỗi
+    if (err instanceof ApiError) {
+      throw err
+    }
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi hủy đơn hàng')
+  }
+}
+
 export const orderService = {
   handleCreateOrder,
   handleFetchOrder,
   handleFetchAllOrders,
   handleUpdateStatusOrder,
-  handleFetchItemOfOrder
+  handleFetchItemOfOrder,
+  handleCancelOrder
 }

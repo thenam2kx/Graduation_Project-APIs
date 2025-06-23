@@ -34,7 +34,7 @@ const OrderSchema: Schema<IOrder> = new mongoose.Schema(
     addressId: { type: Schema.Types.ObjectId, ref: 'addresses', required: false },
     addressFree: {
       type: {
-        province: { type: String, required: true },
+        province: { type: String, required: false },
         district: { type: String, required: false },
         ward: { type: String, required: false },
         address: { type: String, required: false }

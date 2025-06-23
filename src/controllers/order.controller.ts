@@ -112,10 +112,33 @@ const fetchItemOfOrder = async (req: Request, res: Response, next: NextFunction)
   }
 }
 
+const cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params
+    const result = await orderService.handleCancelOrder(orderId)
+    if (result) {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Hủy đơn hàng thành công',
+        data: result
+      })
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình hủy đơn hàng')
+    }
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const orderController = {
   createOrder,
   fetchOrderInfo,
   updateStatusOrder,
   fetchAllOrders,
-  fetchItemOfOrder
+  fetchItemOfOrder,
+  cancelOrder
 }
