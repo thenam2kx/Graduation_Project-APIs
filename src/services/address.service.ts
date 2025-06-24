@@ -12,6 +12,10 @@ interface IAddress {
 }
 
 const handleCreateAddress = async (data: IAddress) => {
+  if (data.isPrimary) {
+    await AddressModel.updateMany({ userId: data.userId, isPrimary: true }, { $set: { isPrimary: false } })
+  }
+
   const res = await AddressModel.create({ ...data })
   if (!res) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình tạo địa chỉ')
@@ -20,6 +24,14 @@ const handleCreateAddress = async (data: IAddress) => {
 }
 
 const handleUpdateAddress = async (id: string, data: IAddress) => {
+  if (data.isPrimary) {
+    await AddressModel.updateMany(
+      { userId: data.userId, _id: { $ne: id }, isPrimary: true },
+      { $set: { isPrimary: false } }
+    )
+  }
+
+
   const res = await AddressModel.updateOne({ _id: id }, { $set: { ...data } }, { runValidators: true })
   if (!res) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình cập nhật địa chỉ')
@@ -43,9 +55,21 @@ const handleFetchAddressesByUser = async (userId: string, addressId: string) => 
   return res
 }
 
+
+const handleDeleteAddress = async (addressId: string, userId: string) => {
+  const result = await AddressModel.findOneAndDelete({ _id: addressId, userId })
+
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy địa chỉ để xóa')
+  }
+
+  return result
+}
+
 export const addressService = {
   handleCreateAddress,
   handleUpdateAddress,
   handleFetchAllAddressesByUser,
-  handleFetchAddressesByUser
+  handleFetchAddressesByUser,
+  handleDeleteAddress
 }

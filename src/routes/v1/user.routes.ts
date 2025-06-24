@@ -23,5 +23,6 @@ Router.route('/:userId/addresses')
 Router.route('/:userId/addresses/:addressId')
   .patch(verifyAccessToken, addressValidation.updateAddressValidation, addressController.updateAddressController)
   .get(verifyAccessToken, addressController.fetchInfoAddressController)
+  .delete(verifyAccessToken, addressController.deleteAddressController)
 
 export const userRoute = Router
