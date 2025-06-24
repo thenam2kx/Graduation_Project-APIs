@@ -217,12 +217,12 @@ const handleForgotPassword = async (email: string) => {
 
 const handleVerifyForgotPasswordCode = async ({ email, code }: { email: string; code: string }) => {
   const user = await UserModel.findOne({ email })
-  if (!user || user.passwordResetToken !== code) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Mã xác minh không đúng')
+  if (!user || user.passwordResetToken !== String(code)) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Mã xác minh không đúng')
   }
 
   if (!user.passwordResetExpires || user.passwordResetExpires < new Date()) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Mã xác minh đã hết hạn')
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Mã xác minh đã hết hạn')
   }
 
   return 'Xác minh mã thành công'

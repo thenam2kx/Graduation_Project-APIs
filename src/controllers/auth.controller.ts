@@ -162,7 +162,8 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
 
 export const verifyForgotPasswordCode = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, code } = req.body
+    const { code } = req.body
+    const email = req.query.email as string
     const message = await authService.handleVerifyForgotPasswordCode({ email, code })
     return sendApiResponse(res, 200, { statusCode: 200, message })
   } catch (error) {
