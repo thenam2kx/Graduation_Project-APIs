@@ -3,13 +3,6 @@ import { StatusCodes } from 'http-status-codes'
 import Joi from 'joi'
 import ApiError from '~/utils/ApiError'
 
-// const objectIdSchema = Joi.string().trim().length(24).hex().required().messages({
-//   'string.base': 'ID phải là chuỗi',
-//   'string.length': 'ID phải có độ dài 24 ký tự',
-//   'string.hex': 'ID phải là chuỗi hex hợp lệ',
-//   'any.required': 'ID là trường bắt buộc'
-// })
-
 const createBlogValidation = async (req: Request, res: Response, next: NextFunction) => {
   const createBlogSchema = Joi.object({
     title: Joi.string().required().min(3).max(255).trim().messages({
@@ -19,6 +12,10 @@ const createBlogValidation = async (req: Request, res: Response, next: NextFunct
     slug: Joi.string().required().trim().messages({
       'string.empty': 'Slug không được để trống',
       'any.required': 'Slug là trường bắt buộc'
+    }),
+    image: Joi.string().required().trim().messages({
+      'string.empty': 'Ảnh không được để trống',
+      'any.required': 'Ảnh là trường bắt buộc'
     }),
     content: Joi.string().required().trim().messages({
       'string.empty': 'Nội dung không được để trống',
@@ -82,6 +79,10 @@ const updateBlogValidation = async (req: Request, res: Response, next: NextFunct
     title: Joi.string().optional().min(3).max(255).trim(),
     slug: Joi.string().optional().trim(),
     content: Joi.string().optional().trim(),
+    image: Joi.string().required().trim().messages({
+      'string.empty': 'Ảnh không được để trống',
+      'any.required': 'Ảnh là trường bắt buộc'
+    }),
     categoryBlogId: Joi.string().trim().length(24).hex().optional().label('categoryBlogId').messages({
       'string.base': 'categoryBlogId phải là chuỗi',
       'string.length': 'categoryBlogId phải có độ dài 24 ký tự',
@@ -171,6 +172,8 @@ const fetchBlogByCategoryValidation = async (req: Request, res: Response, next: 
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
   }
 }
+
+
 
 export const blogValidation = {
   createBlogValidation,

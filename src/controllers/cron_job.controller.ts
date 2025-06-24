@@ -1,36 +1,38 @@
 import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { productVariantService } from '~/services/productVariant.service'
+import { cronJobService } from '~/services/cron_job.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 
-const createProductVariant = async (req: Request, res: Response, next: NextFunction) => {
+const createCronJob = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await productVariantService.handleCreateProductVariant(req.body)
+    const result = await cronJobService.handleCreateCronJob(req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình tạo biến thể sản phẩm!',
+        message: 'Có lỗi xảy ra trong quá trình tạo cron job!',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình tạo biến thể sản phẩm!'
+          details: 'Có lỗi xảy ra trong quá trình tạo cron job!'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.CREATED, {
         statusCode: StatusCodes.CREATED,
-        message: 'Tạo biến thể sản phẩm thành công!',
+        message: 'Tạo cron job thành công!',
         data: result
       })
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
-    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    const err = error as Error & { statusCode?: number }
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
     next(customError)
   }
 }
 
-const fetchAllProductVariants = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAllCronJobs = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { current, pageSize, qs } = req.query
     const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
@@ -43,7 +45,7 @@ const fetchAllProductVariants = async (req: Request, res: Response, next: NextFu
           : typeof qs === 'object' && qs !== null
             ? JSON.stringify(qs)
             : ''
-    const result = await productVariantService.handleFetchAllProductVariants({
+    const result = await cronJobService.handleFetchAllCronJobs({
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
       qs: parsedQs
@@ -51,16 +53,16 @@ const fetchAllProductVariants = async (req: Request, res: Response, next: NextFu
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình lấy danh sách biến thể sản phẩm!',
+        message: 'Có lỗi xảy ra trong quá trình lấy danh sách cron job!',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình lấy danh sách biến thể sản phẩm!'
+          details: 'Có lỗi xảy ra trong quá trình lấy danh sách cron job!'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy danh sách biến thể sản phẩm thành công!',
+        message: 'Lấy danh sách cron job thành công!',
         data: result
       })
     }
@@ -71,23 +73,23 @@ const fetchAllProductVariants = async (req: Request, res: Response, next: NextFu
   }
 }
 
-const fetchInfoProductVariant = async (req: Request, res: Response, next: NextFunction) => {
+const fetchCronJobById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { variantId } = req.params
-    const result = await productVariantService.handleFetchInfoProductVariant(variantId)
+    const { cronJobId } = req.params
+    const result = await cronJobService.handleFetchCronJobById(cronJobId)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình lấy thông tin biến thể sản phẩm!',
+        message: 'Có lỗi xảy ra trong quá trình lấy thông tin cron job!',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình lấy thông tin biến thể sản phẩm!'
+          details: 'Có lỗi xảy ra trong quá trình lấy thông tin cron job!'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy thông tin biến thể sản phẩm thành công!',
+        message: 'Lấy thông tin cron job thành công!',
         data: result
       })
     }
@@ -98,23 +100,23 @@ const fetchInfoProductVariant = async (req: Request, res: Response, next: NextFu
   }
 }
 
-const updateProductVariant = async (req: Request, res: Response, next: NextFunction) => {
+const updateCronJob = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { variantId } = req.params
-    const result = await productVariantService.handleUpdateProductVariant(variantId, req.body)
+    const { cronJobId } = req.params
+    const result = await cronJobService.handleUpdateCronJob(cronJobId, req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình cập nhật biến thể sản phẩm!',
+        message: 'Có lỗi xảy ra trong quá trình cập nhật cron job!',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình cập nhật biến thể sản phẩm!'
+          details: 'Có lỗi xảy ra trong quá trình cập nhật cron job!'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Cập nhật biến thể sản phẩm thành công!',
+        message: 'Cập nhật cron job thành công!',
         data: result
       })
     }
@@ -125,23 +127,23 @@ const updateProductVariant = async (req: Request, res: Response, next: NextFunct
   }
 }
 
-const deleteProductVariant = async (req: Request, res: Response, next: NextFunction) => {
+const deleteCronJob = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { variantId } = req.params
-    const result = await productVariantService.handleDeleteProductVariant(variantId)
+    const { cronJobId } = req.params
+    const result = await cronJobService.handleDeleteCronJob(cronJobId)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
-        message: 'Có lỗi xảy ra trong quá trình xóa biến thể sản phẩm!',
+        message: 'Có lỗi xảy ra trong quá trình xóa cron job!',
         error: {
           code: StatusCodes.BAD_REQUEST,
-          details: 'Có lỗi xảy ra trong quá trình xóa biến thể sản phẩm!'
+          details: 'Có lỗi xảy ra trong quá trình xóa cron job!'
         }
       })
     } else {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Xóa biến thể sản phẩm thành công!',
+        message: 'Xóa cron job thành công!',
         data: result
       })
     }
@@ -152,10 +154,10 @@ const deleteProductVariant = async (req: Request, res: Response, next: NextFunct
   }
 }
 
-export const productVariantController = {
-  createProductVariant,
-  fetchAllProductVariants,
-  fetchInfoProductVariant,
-  updateProductVariant,
-  deleteProductVariant
+export const cronJobController = {
+  createCronJob,
+  fetchAllCronJobs,
+  fetchCronJobById,
+  updateCronJob,
+  deleteCronJob
 }

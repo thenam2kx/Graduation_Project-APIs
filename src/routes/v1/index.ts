@@ -7,10 +7,20 @@ import { cateblogRoute } from './blogcategory.routes'
 import { blogRoute } from './blog.routes'
 import { categoryRoute } from './category.routes'
 import { fileRoute } from './file.route'
+import { notificationRoute } from './notification.routes'
 import { productRoute } from './product.routes'
-import { productVariantRoute } from './productVariant.routes'
+import { productVariantRoute } from './product-variant.routes'
+import { contactRoute } from './contact.routes'
 import { attributeRoute } from './attribute.routes'
 import { variantAttributesRoute } from './variantAttribute.routes'
+import { CartItemRoute } from './cartitem.routes'
+import { CartRoute } from './cart.routes'
+import { orderRoute } from './order.route'
+import { flashSaleRoute } from './flash_sale.routes'
+import { flashSaleItemRoute } from './flash_sale_item.routes'
+import { cronJobRoute } from './cron_job.routes'
+import { wishlistRoute } from './wishlist.routes'
+import { vnpayRoute } from './vnpay.routes'
 
 const Router = express.Router()
 
@@ -26,5 +36,15 @@ Router.use('/attributes', attributeRoute)
 Router.use('/variantsat', variantAttributesRoute)
 Router.use('/categories', categoryRoute)
 Router.use('/files', fileRoute)
+Router.use('/notifications', notificationRoute)
+Router.use('/contacts', contactRoute)
+Router.use('/orders', orderRoute)
+Router.use('/cartitems', CartItemRoute)
+Router.use('/carts', CartRoute)
+Router.use('/flashsales', flashSaleRoute)
+Router.use('/flashsales-item', flashSaleItemRoute)
+Router.use('/cron-jobs', cronJobRoute)
+Router.use('/wishlists', wishlistRoute)
+Router.use('/vnpay', vnpayRoute)
 
 export const APIs_v1 = Router

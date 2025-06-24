@@ -40,10 +40,7 @@ const createProductVariantValidation = async (req: Request, res: Response, next:
     image: Joi.string().optional().uri().messages({
       'string.uri': 'image phải là URL hợp lệ'
     }),
-    attributes: Joi.object().optional(),
-    createdBy: metaDataRefSchema.optional(),
-    updatedBy: metaDataRefSchema.optional(),
-    deletedBy: metaDataRefSchema.optional()
+    attributes: Joi.object().optional()
   })
 
   try {

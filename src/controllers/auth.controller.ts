@@ -97,12 +97,21 @@ const signin = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
-const signout = async (req: Request, res: Response) => {
-  res.clearCookie('refresh_token')
-  sendApiResponse(res, StatusCodes.NO_CONTENT, {
-    statusCode: StatusCodes.NO_CONTENT,
-    message: 'Đăng xuất thành công'
-  })
+const signout = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.clearCookie('refresh_token')
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Đăng xuất thành công',
+      data: 'Đăng xuất thành công'
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
 }
 
 const refreshToken = async (req: Request, res: Response, next: NextFunction) => {

@@ -24,8 +24,11 @@ const createDiscounts = async (req: Request, res: Response, next: NextFunction) 
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
@@ -66,8 +69,11 @@ const fetchAllDiscounts = async (req: Request, res: Response, next: NextFunction
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
@@ -92,8 +98,11 @@ const fetchDiscountsById = async (req: Request, res: Response, next: NextFunctio
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
@@ -118,8 +127,11 @@ const updateDiscounts = async (req: Request, res: Response, next: NextFunction) 
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 
@@ -144,8 +156,11 @@ const deleteDiscounts = async (req: Request, res: Response, next: NextFunction) 
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
-    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
   }
 }
 

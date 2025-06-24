@@ -6,13 +6,21 @@ import { SoftDeleteModel } from 'mongoose-delete'
 import ApiError from './ApiError'
 import { StatusCodes } from 'http-status-codes'
 import bcrypt, { compareSync } from 'bcryptjs'
-
 /**
  * @param string - The string to be converted to a slug.
  * @description This function converts a given string into a URL-friendly slug format.
  * It replaces spaces with hyphens, removes special characters, and converts the string to lowercase.
  * It uses the 'slugify' library to perform the conversion.
  */
+export const createSlug = (text: string) => {
+  const normalized = slugify(text, {
+    lower: false,
+    locale: 'vi',
+    remove: /[*+~.()'"!:@?&%$#]/g
+  })
+
+  return normalized.split(' ').filter(Boolean).join('-')
+}
 export const convertSlugUrl = (string: string) => {
   if (!string) return ''
 

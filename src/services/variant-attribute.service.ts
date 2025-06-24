@@ -3,7 +3,7 @@ import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { isExistObject, isValidMongoId } from '~/utils/utils'
-import VariantAttributeModel, { IVariantAttribute } from '~/models/variantAttribute.model'
+import VariantAttributeModel, { IVariantAttribute } from '~/models/variant-attribute.model'
 
 const handleCreateVariantAttribute = async (data: IVariantAttribute) => {
   await isExistObject(

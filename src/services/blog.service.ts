@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import BlogModel, { IBlog } from '~/models/blog.model'
 import { isExistObject } from '~/utils/utils'
 import aqp from 'api-query-params'

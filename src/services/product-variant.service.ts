@@ -2,12 +2,11 @@
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-import ProductVariantModel, { IProductVariant } from '~/models/productVariant.model'
+import ProductVariantModel, { IProductVariant } from '~/models/product-variant.model'
 import { isExistObject, isValidMongoId } from '~/utils/utils'
 import '../models/product.model'
 
 const handleCreateProductVariant = async (data: IProductVariant) => {
-  // Kiểm tra sku đã tồn tại trong cùng productId chưa (unique sku cho mỗi product)
   await isExistObject(
     ProductVariantModel,
     { sku: data.sku, productId: data.productId },

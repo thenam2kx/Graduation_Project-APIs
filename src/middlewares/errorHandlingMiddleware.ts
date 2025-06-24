@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 export const errorHandlingMiddleware = (err: any, req: Request, res: Response, next: NextFunction) => {
   // Nếu dev không cẩn thận thiếu statusCode thì mặc định sẽ để code 500 INTERNAL_SERVER_ERROR
+  console.log('Middleware error:', err)
   if (!err.statusCode) err.statusCode = StatusCodes.INTERNAL_SERVER_ERROR
 
   // Tạo ra một biến responseError để kiểm soát những gì muốn trả về

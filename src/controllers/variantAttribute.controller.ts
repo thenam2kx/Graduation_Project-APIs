@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { variantAttributesService } from '~/services/variantAttribute.service'
+import { variantAttributesService } from '~/services/variant-attribute.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 

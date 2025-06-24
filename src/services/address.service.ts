@@ -31,6 +31,7 @@ const handleUpdateAddress = async (id: string, data: IAddress) => {
     )
   }
 
+
   const res = await AddressModel.updateOne({ _id: id }, { $set: { ...data } }, { runValidators: true })
   if (!res) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình cập nhật địa chỉ')
@@ -53,6 +54,7 @@ const handleFetchAddressesByUser = async (userId: string, addressId: string) => 
   }
   return res
 }
+
 
 const handleDeleteAddress = async (addressId: string, userId: string) => {
   const result = await AddressModel.findOneAndDelete({ _id: addressId, userId })
