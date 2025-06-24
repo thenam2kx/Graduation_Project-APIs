@@ -232,6 +232,7 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
       name: productData.name,
       description: productData.description,
       price: productData.price,
+      image: productData.image,
       slug,
       categoryId: productData.categoryId,
       brandId: productData.brandId

@@ -5,6 +5,7 @@ import CartItemModel, { ICartItem } from '~/models/cartitem.model'
 import ProductVariantModel from '~/models/product-variant.model'
 import ProductModel from '~/models/product.model'
 import mongoose from 'mongoose'
+import VariantAttributeModel from '~/models/variant-attribute.model'
 
 const handleFetchCartByUser = async (userId: string) => {
   const carts = await CartModel.findOne({ userId }).populate('userId', 'name email').lean().exec()
@@ -38,6 +39,7 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
       ProductModel.findById(item.productId).session(session),
       ProductVariantModel.findById(item.variantId).session(session)
     ])
+    const valueProduct = await VariantAttributeModel.findOne({ variantId: item.variantId })
     if (!product) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
     }
@@ -53,7 +55,7 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
 
     // 3. Thêm mới hoặc cập nhật số lượng với upsert
     const updatedItem = await CartItemModel.findOneAndUpdate(
-      { cartId, productId: item.productId, variantId: item.variantId },
+      { cartId, productId: item.productId, variantId: item.variantId, value: valueProduct?.value },
       { $inc: { quantity: item.quantity } },
       {
         new: true, // trả về document sau update
@@ -82,8 +84,8 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
 // Lấy chi tiết giỏ hàng theo ID
 const handleFetchCartInfo = async (id: string) => {
   const cartInfo = await CartItemModel.find({ cartId: id }).populate('productId').populate('variantId').lean().exec()
-  if (!cartInfo || cartInfo.length === 0) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giỏ hàng hoặc giỏ hàng trống')
+  if (!cartInfo) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giỏ hàng')
   } else {
     return cartInfo
   }
