@@ -54,12 +54,12 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.required': 'discountId là trường bắt buộc'
     }),
     status: Joi.string()
-      .valid('pending', 'processing', 'shipped', 'delivered', 'cancelled')
+      .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
       .default('pending')
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
-        'any.only': 'status phải là một trong các giá trị: pending, processing, shipped, delivered, cancelled',
+        'any.only': 'status phải là một trong các giá trị: pending, confirmed, processing, shipped, delivered, completed, cancelled, refunded',
         'any.required': 'status là trường bắt buộc'
       }),
     shippingMethod: Joi.string().valid('standard', 'express').default('standard').label('shippingMethod').messages({
@@ -179,12 +179,12 @@ const updateStatusOrderValidation = async (req: Request, res: Response, next: Ne
       'any.required': 'orderId là trường bắt buộc'
     }),
     status: Joi.string()
-      .valid('pending', 'processing', 'shipped', 'delivered', 'cancelled')
+      .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
       .required()
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
-        'any.only': 'status phải là một trong các giá trị: pending, processing, shipped, delivered, cancelled',
+        'any.only': 'status phải là một trong các giá trị: pending, confirmed, processing, shipped, delivered, completed, cancelled, refunded',
         'any.required': 'status là trường bắt buộc'
       })
   })

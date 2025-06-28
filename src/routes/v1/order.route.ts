@@ -5,7 +5,9 @@ import { orderValidation } from '~/validations/order.validation'
 
 const Router = express.Router()
 
-Router.route('/').post(verifyAccessToken, orderValidation.createOrderValidation, orderController.createOrder)
+Router.route('/')
+  .post(verifyAccessToken, orderValidation.createOrderValidation, orderController.createOrder)
+  .get(verifyAccessToken, orderController.fetchAllOrdersForAdmin)
 
 Router.route('/:orderId').get(
   verifyAccessToken,

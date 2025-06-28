@@ -49,7 +49,7 @@ export const vnpayController = {
     }
   },
 
-  vnpayReturn: (req, res, next) => {
+  vnpayReturn: async (req, res, next) => {
     try {
       console.log('VNPay return query params:', req.query)
       const vnpayParams = req.query
@@ -57,8 +57,44 @@ export const vnpayController = {
       
       console.log('Verify result:', result)
       
-      // Tạm thời bỏ qua verify chữ ký cho test
+      // Cập nhật trạng thái đơn hàng nếu thanh toán thành công
       if (result.responseCode === '00') {
+        try {
+          // Import OrderModel để cập nhật trạng thái đơn hàng
+          const OrderModel = require('../models/order.model').default
+          const OrderItemModel = require('../models/orderItems.model').default
+          
+          // Lấy orderId từ kết quả trả về
+          const orderId = result.data?.orderId
+          
+          if (orderId) {
+            // Kiểm tra xem đơn hàng có tồn tại không
+            const order = await OrderModel.findById(orderId)
+            console.log('Found order:', order ? 'Yes' : 'No')
+            
+            if (order) {
+              // Cập nhật trạng thái đơn hàng thành đã thanh toán
+              const updatedOrder = await OrderModel.findByIdAndUpdate(
+                orderId,
+                { 
+                  paymentStatus: 'paid',
+                  status: 'confirmed' 
+                },
+                { new: true }
+              )
+              console.log(`Đã cập nhật trạng thái đơn hàng ${orderId} thành công`, updatedOrder)
+              
+              // Kiểm tra các sản phẩm trong đơn hàng
+              const orderItems = await OrderItemModel.find({ orderId })
+              console.log(`Đơn hàng ${orderId} có ${orderItems.length} sản phẩm`)
+            } else {
+              console.error(`Không tìm thấy đơn hàng với ID ${orderId}`)
+            }
+          }
+        } catch (updateError) {
+          console.error('Lỗi khi cập nhật trạng thái đơn hàng:', updateError)
+        }
+        
         return res.json({
           success: true,
           message: 'Thanh toán thành công',
@@ -83,15 +119,36 @@ export const vnpayController = {
     }
   },
 
-  vnpayIPN: (req, res, next) => {
+  vnpayIPN: async (req, res, next) => {
     try {
       console.log('VNPay IPN received:', req.query)
       const vnpayParams = req.query
       const result = verifyVnpayReturn(vnpayParams)
       
       if (result.responseCode === '00') {
-        // TODO: Cập nhật trạng thái đơn hàng trong database
-        console.log('Payment success for order:', result.data?.orderId)
+        try {
+          // Import OrderModel để cập nhật trạng thái đơn hàng
+          const OrderModel = require('../models/order.model').default
+          
+          // Lấy orderId từ kết quả trả về
+          const orderId = result.data?.orderId
+          
+          if (orderId) {
+            // Cập nhật trạng thái đơn hàng thành đã thanh toán
+            await OrderModel.findByIdAndUpdate(
+              orderId,
+              { 
+                paymentStatus: 'paid',
+                status: 'confirmed' 
+              },
+              { new: true }
+            )
+            console.log(`Đã cập nhật trạng thái đơn hàng ${orderId} thành công qua IPN`)
+          }
+        } catch (updateError) {
+          console.error('Lỗi khi cập nhật trạng thái đơn hàng qua IPN:', updateError)
+        }
+        
         return res.json({ RspCode: '00', Message: 'success' })
       } else {
         console.log('Payment failed for order:', result.data?.orderId)
