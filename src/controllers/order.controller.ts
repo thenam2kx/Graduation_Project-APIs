@@ -30,12 +30,21 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 
 const fetchAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await orderService.handleFetchAllOrders(req.params.userId)
+    const { userId } = req.params
+    const { page = 1, limit = 10, sort = '-createdAt', status } = req.query
+
+    const result = await orderService.handleFetchAllOrders(userId, {
+      page: Number(page),
+      limit: Number(limit),
+      sort: String(sort),
+      status: status?.toString()
+    })
+
     if (result) {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
         message: 'Lấy danh sách đơn hàng thành công',
-        data: result
+        data: result // ⬅️ đã bao gồm items
       })
     } else {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình lấy danh sách đơn hàng')
@@ -55,7 +64,7 @@ const fetchOrderInfo = async (req: Request, res: Response, next: NextFunction) =
     if (result) {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
-        message: 'Lấy thông tin đơn hàng thành công',
+        message: 'Lấy thông tin chi tiết đơn hàng thành công',
         data: result
       })
     } else {
@@ -73,8 +82,8 @@ const fetchOrderInfo = async (req: Request, res: Response, next: NextFunction) =
 const updateStatusOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { orderId } = req.params
-    const { status } = req.body
-    const result = await orderService.handleUpdateStatusOrder(orderId, status)
+    const { status, reason } = req.body
+    const result = await orderService.handleUpdateStatusOrder(orderId, status, reason)
     if (result) {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,

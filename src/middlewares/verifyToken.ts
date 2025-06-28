@@ -7,6 +7,9 @@ import sendApiResponse from '~/utils/response.message'
 
 const verifyAccessToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers['authorization']
+  // console.log('[VerifyAccessToken] Header:', authHeader)
+  // console.log('[VerifyAccessToken] URL:', req.originalUrl)
+  // console.log('[VerifyAccessToken] Header:', req.headers['authorization'])
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     sendApiResponse(res, StatusCodes.UNAUTHORIZED, {

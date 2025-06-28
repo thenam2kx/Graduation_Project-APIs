@@ -33,6 +33,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       })
     })
       .optional()
+      .allow(null)
       .label('addressFree')
       .messages({
         'object.base': 'addressFree phải là một object'
@@ -55,6 +56,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
     }),
     status: Joi.string()
       .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
+      .required()
       .default('pending')
       .label('status')
       .messages({
@@ -179,19 +181,39 @@ const updateStatusOrderValidation = async (req: Request, res: Response, next: Ne
       'any.required': 'orderId là trường bắt buộc'
     }),
     status: Joi.string()
-      .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
+      .valid(
+        'pending',
+        'confirmed',
+        'processing',
+        'shipped',
+        'delivered',
+        'completed',
+        'cancelled',
+        'refunded'
+      )
       .required()
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
         'any.only': 'status phải là một trong các giá trị: pending, confirmed, processing, shipped, delivered, completed, cancelled, refunded',
         'any.required': 'status là trường bắt buộc'
-      })
+      }),
+    reason: Joi.when('status', {
+      is: Joi.valid('cancelled', 'refunded'),
+      then: Joi.string().trim().min(3).max(300).required().label('reason').messages({
+        'string.base': 'Lý do phải là chuỗi',
+        'string.min': 'Lý do phải ít nhất 3 ký tự',
+        'string.max': 'Lý do không vượt quá 300 ký tự',
+        'any.required': 'Lý do là bắt buộc khi hủy hoặc hoàn tiền'
+      }),
+      otherwise: Joi.forbidden()
+    })
   })
+
   try {
     const { orderId } = req.params
-    const { status } = req.body
-    await updateStatusOrderValidationSchema.validateAsync({ orderId, status }, { abortEarly: false })
+    const { status, reason } = req.body
+    await updateStatusOrderValidationSchema.validateAsync({ orderId, status, reason }, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'

@@ -36,7 +36,11 @@ app.use(helmet())
 //config template engine
 configViewEngine(app)
 
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')))
+app.use('/uploads', cors(corsOptions), (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    next()
+  },
+  express.static(path.join(__dirname, '../public/uploads')))
 
 app.use('/api/v1', APIs_v1)
 // config static file

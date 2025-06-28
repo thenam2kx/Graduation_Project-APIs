@@ -26,7 +26,7 @@ const OrderItemSchema = new Schema(
     price: { type: Number, required: true, min: 0 },
     createdBy: {
       _id: { type: String },
-      email: { type: String }
+      email: { type: String },
     },
     updatedBy: {
       _id: { type: String },

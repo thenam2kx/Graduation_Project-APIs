@@ -16,14 +16,10 @@ const handleCreateDiscounts = async (data: IDiscounts) => {
     if (data.endDate <= data.startDate) {
       throw new ApiError(StatusCodes.CONFLICT, 'Ngày kết thúc (endDate) phải sau ngày bắt đầu (startDate)')
     }
-
-    // 2. Validate theo loại giảm giá
     if (data.type === '%') {
-      // 2.1 value phải >0 và <=100
       if (data.value <= 0 || data.value > 100) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Với type "%", trường value phải là số > 0 và ≤ 100')
       }
-      // 2.2 max_discount_amount bắt buộc
       if (data.max_discount_amount === undefined || data.max_discount_amount === null) {
         throw new ApiError(
           StatusCodes.BAD_REQUEST,
@@ -31,38 +27,25 @@ const handleCreateDiscounts = async (data: IDiscounts) => {
         )
       }
     } else if (data.type === 'Vnd') {
-      // 2.3 Với Vnd, value phải dương
       if (data.value <= 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Với type "Vnd", trường value phải là số > 0')
       }
-      // (tuỳ chọn) bạn có thể ép phải không có max_discount_amount,
-      // hoặc cho phép nhưng không bắt buộc
     } else {
-      // Vi phạm enum, thường mongoose đã check rồi nhưng thêm cho chắc
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Type không hợp lệ, chỉ cho phép "%" hoặc "Vnd"')
     }
-
-    // 3. Nếu qua hết validate thì tạo mới
     const result = await DiscountModel.create(data)
     return result.toObject()
   } catch (error: any) {
-    // Mongoose validation error
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message)
       throw new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, messages.join(', '))
     }
-
-    // Duplicate key (code)
     if (error.code === 11000) {
       throw new ApiError(StatusCodes.CONFLICT, 'Mã giảm giá đã tồn tại trong hệ thống')
     }
-
-    // ApiError chúng ta ném ở trên sẽ tới đây luôn
     if (error instanceof ApiError) {
       throw error
     }
-
-    // Lỗi bất ngờ khác
     throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Lỗi tạo mã giảm giá')
   }
 }
