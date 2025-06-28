@@ -9,7 +9,6 @@ import ProductModel from '~/models/product.model'
 import ProductVariantModel from '~/models/product-variant.model'
 import { StatusCodes } from 'http-status-codes'
 import OrderItemModel, { IOrderItem } from '~/models/orderItems.model'
-import aqp from 'api-query-params'
 
 interface OrderItemInput {
   productId: string
@@ -17,7 +16,6 @@ interface OrderItemInput {
   quantity: number
   price: number
 }
-
 export interface CreateOrderDTO {
   userId: string
   addressId: string
@@ -33,16 +31,17 @@ export interface CreateOrderDTO {
   items: OrderItemInput[]
 }
 
-export const ORDER_STATUS = [
-  'pending',
-  'confirmed',
-  'processing',
-  'shipped',
-  'delivered',
-  'completed',
-  'cancelled',
-  'refunded'
-] as const
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: 'Chờ xác nhận',
+  confirmed: 'Đã xác nhận',
+  processing: 'Đang xử lý',
+  shipped: 'Đã gửi hàng',
+  delivered: 'Đã giao hàng',
+  completed: 'Đã hoàn thành',
+  cancelled: 'Đã hủy',
+  refunded: 'Đã hoàn tiền'
+}
+export const ORDER_STATUS = Object.keys(ORDER_STATUS_LABELS)
 
 const handleCreateOrder = async (data: CreateOrderDTO) => {
   console.log('🚀 ~ handleCreateOrder ~ data:', data)
@@ -123,7 +122,7 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
           discountId: data.discountId ?? null,
           status: data.status ?? 'pending',
           shippingMethod: data.shippingMethod ?? 'standard',
-          paymentMethod: data.paymentMethod ?? 'credit_card',
+          paymentMethod: data.paymentMethod ?? 'cash',
           paymentStatus: data.paymentStatus ?? 'unpaid',
           note: data.note ?? ''
         }
@@ -181,54 +180,72 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
   }
 }
 
-const handleFetchAllOrders = async (userId: string) => {
-  const qs = ''
-  const currentPage = 1
-  const limit = 10
-  const { filter, sort, population } = aqp(qs)
+const handleFetchAllOrders = async (
+  userId: string,
+  options: { page: number; limit: number; sort: string; status?: string }
+) => {
+  const { page = 1, limit = 10, sort = '-createdAt', status } = options
 
-  if (filter.keyword) {
-    const keyword = String(filter.keyword).trim()
-    delete filter.keyword
+  const filter: any = { userId: new mongoose.Types.ObjectId(userId) }
+  if (status) filter.status = status
 
-    if (keyword) {
-      filter.$or = [{ name: { $regex: keyword, $options: 'i' } }, { phone: { $regex: keyword, $options: 'i' } }]
-    }
-  }
-
-  delete filter.current
-  delete filter.pageSize
-
-  const offset = (+currentPage - 1) * +limit
-  const defaultLimit = +limit ? +limit : 10
+  const offset = (page - 1) * limit
   const totalItems = await OrderModel.countDocuments(filter)
-  const totalPages = Math.ceil(totalItems / defaultLimit)
+  const totalPages = Math.ceil(totalItems / limit)
 
-  const results = await OrderModel.find({ userId })
+  // 1. Lấy danh sách đơn hàng
+  const orders = await OrderModel.find(filter)
     .skip(offset)
-    .limit(defaultLimit)
-    .sort(sort as any)
-    .populate(population)
-    .populate('userId', 'name email')
+    .limit(limit)
+    .sort(sort)
+    .populate('userId', 'fullName email phone')
     .populate('addressId')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
-    .exec()
+
+  // 2. Gán nhãn trạng thái
+  orders.forEach((order) => {
+    order.statusLabel = ORDER_STATUS_LABELS[order.status] || order.status
+  })
+
+  // 3. Lấy danh sách các orderId
+  const orderIds = orders.map((order) => order._id)
+
+  // 4. Lấy tất cả OrderItem tương ứng
+  const orderItems = await OrderItemModel.find({ orderId: { $in: orderIds } })
+    .populate('productId', 'name image')
+    .populate('variantId', 'sku color size')
+    .lean()
+
+  // 5. Gộp items vào từng đơn
+  const orderItemsMap = new Map<string, any[]>()
+  for (const item of orderItems) {
+    const id = item.orderId.toString()
+    if (!orderItemsMap.has(id)) {
+      orderItemsMap.set(id, [])
+    }
+    orderItemsMap.get(id)?.push(item)
+  }
+
+  const ordersWithItems = orders.map((order) => ({
+    ...order,
+    items: orderItemsMap.get(order._id.toString()) || []
+  }))
 
   return {
     meta: {
-      current: currentPage,
-      pageSize: defaultLimit,
+      current: page,
+      pageSize: limit,
       pages: totalPages,
       total: totalItems
     },
-    results
+    results: ordersWithItems
   }
 }
 
 const handleFetchOrder = async (orderId: string) => {
   const order = await OrderModel.findById(orderId)
-    .populate('userId', 'name email')
+    .populate('userId', 'fullName email phone')
     .populate('addressId')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
@@ -237,10 +254,11 @@ const handleFetchOrder = async (orderId: string) => {
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
+  order.statusLabel = ORDER_STATUS_LABELS[order.status] || order.status
   return order
 }
 
-const handleUpdateStatusOrder = async (orderId: string, status: string) => {
+const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:string) => {
   if (!orderId || !mongoose.isValidObjectId(orderId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'ID đơn hàng không hợp lệ')
   }
@@ -248,9 +266,13 @@ const handleUpdateStatusOrder = async (orderId: string, status: string) => {
   if (!ORDER_STATUS.includes(status)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Trạng thái đơn hàng không hợp lệ')
   }
+  const updateUpload: any = { status }
+  if (['cancelled', 'refunded'].includes(status) && (reason)){
+    updateUpload.reason = reason
+  }
 
-  const order = await OrderModel.findByIdAndUpdate(orderId, { status }, { new: true })
-    .populate('userId', 'name email')
+  const order = await OrderModel.findByIdAndUpdate(orderId, updateUpload, { new: true })
+    .populate('userId', 'fullName email phone')
     .populate('addressId')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
@@ -259,7 +281,6 @@ const handleUpdateStatusOrder = async (orderId: string, status: string) => {
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
-
   return order
 }
 

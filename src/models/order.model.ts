@@ -18,6 +18,7 @@ export interface IOrder extends SoftDeleteDocument {
   paymentMethod?: string
   paymentStatus?: string
   note?: string
+  reason?: string
   createdBy?: {
     _id: string
     email: string
@@ -46,9 +47,13 @@ const OrderSchema: Schema<IOrder> = new mongoose.Schema(
     discountId: { type: Schema.Types.ObjectId, ref: 'Discounts', required: false },
     status: { type: String, default: 'pending' },
     shippingMethod: { type: String, default: 'standard' },
-    paymentMethod: { type: String, default: 'credit_card' },
+    paymentMethod: { type: String, default: 'cash' },
     paymentStatus: { type: String, default: 'unpaid' },
     note: { type: String, default: '' },
+    reason: {
+      type: String,
+      default: ''
+    },
     createdBy: {
       _id: { type: String },
       email: { type: String }
