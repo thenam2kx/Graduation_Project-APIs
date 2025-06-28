@@ -3,6 +3,9 @@ import { StatusCodes } from 'http-status-codes'
 import { orderService } from '~/services/order.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
+import aqp from 'api-query-params'
+import OrderModel from '~/models/order.model'
+import OrderItemModel from '~/models/orderItems.model'
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -143,11 +146,65 @@ const cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
+// API mới để lấy tất cả đơn hàng cho Admin
+const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log('Fetching all orders for admin, query:', req.query)
+    
+    // Trả về tất cả đơn hàng mà không cần filter, sắp xếp theo thời gian tạo mới nhất trước
+    const allOrders = await OrderModel.find({})
+      .sort({ createdAt: -1 }) // Sắp xếp giảm dần theo thời gian tạo
+      .populate('userId', 'name email phone')
+      .populate('addressId')
+      .populate('discountId', 'name value type startDate endDate')
+      .lean()
+      .exec()
+    
+    console.log('All orders found:', allOrders.length)
+    
+    // Lấy thêm thông tin các sản phẩm trong đơn hàng
+    const ordersWithItems = await Promise.all(
+      allOrders.map(async (order) => {
+        const items = await OrderItemModel.find({ orderId: order._id })
+          .populate('productId')
+          .populate('variantId')
+          .lean()
+          .exec()
+        return { ...order, items }
+      })
+    )
+    
+    const result = {
+      meta: {
+        current: 1,
+        pageSize: 100,
+        pages: 1,
+        total: allOrders.length
+      },
+      results: ordersWithItems
+    }
+    
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách tất cả đơn hàng thành công',
+      data: result
+    })
+  } catch (error) {
+    console.error('Error in fetchAllOrdersForAdmin:', error)
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const orderController = {
   createOrder,
   fetchOrderInfo,
   updateStatusOrder,
   fetchAllOrders,
   fetchItemOfOrder,
-  cancelOrder
+  cancelOrder,
+  fetchAllOrdersForAdmin
 }

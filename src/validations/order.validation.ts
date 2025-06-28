@@ -57,6 +57,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
     status: Joi.string()
       .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
       .required()
+      .default('pending')
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
@@ -68,15 +69,11 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.only': 'shippingMethod phải là một trong các giá trị: standard, express',
       'any.required': 'shippingMethod là trường bắt buộc'
     }),
-    paymentMethod: Joi.string()
-      .valid('cash', 'vnpay', 'momo')
-      .default('cash')
-      .label('paymentMethod')
-      .messages({
-        'string.base': 'paymentMethod phải là chuỗi',
-        'any.only': 'paymentMethod phải là một trong các giá trị: cash, vnpay, momo',
-        'any.required': 'paymentMethod là trường bắt buộc'
-      }),
+    paymentMethod: Joi.string().valid('cash', 'vnpay', 'momo').default('cash').label('paymentMethod').messages({
+      'string.base': 'paymentMethod phải là chuỗi',
+      'any.only': 'paymentMethod phải là một trong các giá trị: cash, vnpay, momo',
+      'any.required': 'paymentMethod là trường bắt buộc'
+    }),
     paymentStatus: Joi.string()
       .valid('unpaid', 'pending', 'paid', 'failed')
       .default('pending')

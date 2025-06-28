@@ -196,6 +196,58 @@ const handleGetAccount = async (userId: string) => {
   }
 }
 
+const handleForgotPassword = async (email: string) => {
+  const user = await UserModel.findOne({ email })
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Email không tồn tại trong hệ thống')
+  }
+
+  const resetToken = generateCode()
+  user.passwordResetToken = resetToken
+  user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000) // 15 phút
+  await user.save()
+
+  await sendEmail(user.email, 'Mã xác minh đặt lại mật khẩu', 'mailer', {
+    activationCode: resetToken,
+    author: user.fullName
+  })
+
+  return 'Mã xác minh đã được gửi tới email'
+}
+
+const handleVerifyForgotPasswordCode = async ({ email, code }: { email: string; code: string }) => {
+  const user = await UserModel.findOne({ email })
+  if (!user || user.passwordResetToken !== String(code)) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Mã xác minh không đúng')
+  }
+
+  if (!user.passwordResetExpires || user.passwordResetExpires < new Date()) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Mã xác minh đã hết hạn')
+  }
+
+  return 'Xác minh mã thành công'
+}
+
+const handleResetPassword = async ({ email, password, code }: { email: string; password: string; code: string }) => {
+  const user = await UserModel.findOne({ email })
+  if (
+    !user ||
+    user.passwordResetToken !== code ||
+    !user.passwordResetExpires ||
+    user.passwordResetExpires < new Date()
+  ) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Thông tin không hợp lệ hoặc mã đã hết hạn')
+  }
+
+  const hashedPassword = await hashPassword(password)
+  user.password = hashedPassword
+  user.passwordResetToken = undefined
+  user.passwordResetExpires = undefined
+
+  await user.save()
+  return 'Đặt lại mật khẩu thành công'
+}
+
 export const authService = {
   handleSignup,
   handleVerifyEmail,
@@ -203,5 +255,8 @@ export const authService = {
   handleSignin,
   handleSignout,
   handleRefreshToken,
-  handleGetAccount
+  handleGetAccount,
+  handleForgotPassword,
+  handleVerifyForgotPasswordCode,
+  handleResetPassword
 }

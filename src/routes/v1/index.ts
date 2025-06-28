@@ -44,6 +44,7 @@ Router.use('/carts', CartRoute)
 Router.use('/flashsales', flashSaleRoute)
 Router.use('/flashsales-item', flashSaleItemRoute)
 Router.use('/cron-jobs', cronJobRoute)
+Router.use('/wishlist', wishlistRoute)
 Router.use('/wishlists', wishlistRoute)
 Router.use('/vnpay', vnpayRoute)
 
