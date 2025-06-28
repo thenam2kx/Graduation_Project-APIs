@@ -5,11 +5,6 @@ import ApiError from '~/utils/ApiError'
 
 const createWishlistValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    userId: Joi.string().required().trim().messages({
-      'string.base': 'userId phải là chuỗi',
-      'string.empty': 'userId không được để trống',
-      'any.required': 'userId là trường bắt buộc'
-    }),
     productId: Joi.string().required().trim().messages({
       'string.base': 'productId phải là chuỗi',
       'string.empty': 'productId không được để trống',
@@ -28,14 +23,6 @@ const createWishlistValidation = async (req: Request, res: Response, next: NextF
 }
 
 const fetchWishlistByUserValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    userId: Joi.string().required().trim().messages({
-      'string.base': 'userId phải là chuỗi',
-      'string.empty': 'userId không được để trống',
-      'any.required': 'userId là trường bắt buộc'
-    })
-  })
-
   const querySchema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
@@ -43,7 +30,6 @@ const fetchWishlistByUserValidation = async (req: Request, res: Response, next: 
   }).unknown(true)
 
   try {
-    await schema.validateAsync(req.params, { abortEarly: false })
     await querySchema.validateAsync(req.query, { abortEarly: false })
     next()
   } catch (error) {
@@ -74,11 +60,6 @@ const deleteWishlistValidation = async (req: Request, res: Response, next: NextF
 
 const checkWishlistValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    userId: Joi.string().required().trim().messages({
-      'string.base': 'userId phải là chuỗi',
-      'string.empty': 'userId không được để trống',
-      'any.required': 'userId là trường bắt buộc'
-    }),
     productId: Joi.string().required().trim().messages({
       'string.base': 'productId phải là chuỗi',
       'string.empty': 'productId không được để trống',
