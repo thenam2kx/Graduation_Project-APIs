@@ -18,7 +18,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.required': 'addressId là trường bắt buộc'
     }),
     addressFree: Joi.object({
-      province: Joi.string().required().messages({
+      province: Joi.string().optional().messages({
         'string.base': 'Tỉnh/Thành phố phải là chuỗi',
         'any.required': 'province là bắt buộc'
       }),
@@ -54,18 +54,23 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'any.required': 'discountId là trường bắt buộc'
     }),
     status: Joi.string()
-      .valid('pending', 'processing', 'shipped', 'delivered', 'cancelled')
+      .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
       .default('pending')
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
-        'any.only': 'status phải là một trong các giá trị: pending, processing, shipped, delivered, cancelled',
+        'any.only': 'status phải là một trong các giá trị: pending, confirmed, processing, shipped, delivered, completed, cancelled, refunded',
         'any.required': 'status là trường bắt buộc'
       }),
     shippingMethod: Joi.string().valid('standard', 'express').default('standard').label('shippingMethod').messages({
       'string.base': 'shippingMethod phải là chuỗi',
       'any.only': 'shippingMethod phải là một trong các giá trị: standard, express',
       'any.required': 'shippingMethod là trường bắt buộc'
+    }),
+    paymentMethod: Joi.string().valid('cash', 'vnpay', 'momo').default('cash').label('paymentMethod').messages({
+      'string.base': 'paymentMethod phải là chuỗi',
+      'any.only': 'paymentMethod phải là một trong các giá trị: cash, vnpay, momo',
+      'any.required': 'paymentMethod là trường bắt buộc'
     }),
     paymentStatus: Joi.string()
       .valid('unpaid', 'pending', 'paid', 'failed')
@@ -174,12 +179,12 @@ const updateStatusOrderValidation = async (req: Request, res: Response, next: Ne
       'any.required': 'orderId là trường bắt buộc'
     }),
     status: Joi.string()
-      .valid('pending', 'processing', 'shipped', 'delivered', 'cancelled')
+      .valid('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded')
       .required()
       .label('status')
       .messages({
         'string.base': 'status phải là chuỗi',
-        'any.only': 'status phải là một trong các giá trị: pending, processing, shipped, delivered, cancelled',
+        'any.only': 'status phải là một trong các giá trị: pending, confirmed, processing, shipped, delivered, completed, cancelled, refunded',
         'any.required': 'status là trường bắt buộc'
       })
   })
@@ -214,10 +219,30 @@ const fetchItemOfOrderValidation = async (req: Request, res: Response, next: Nex
   }
 }
 
+const cancelOrderValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const cancelOrderValidationSchema = Joi.object({
+    orderId: Joi.string().trim().length(24).hex().required().label('orderId').messages({
+      'string.base': 'orderId phải là chuỗi',
+      'string.length': 'orderId phải có độ dài 24 ký tự',
+      'string.hex': 'orderId phải là chuỗi hex hợp lệ',
+      'any.required': 'orderId là trường bắt buộc'
+    })
+  })
+  try {
+    await cancelOrderValidationSchema.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const orderValidation = {
   createOrderValidation,
   fetchOrderInfoValidation,
   fetchAllOrdersValidation,
   updateStatusOrderValidation,
-  fetchItemOfOrderValidation
+  fetchItemOfOrderValidation,
+  cancelOrderValidation
 }

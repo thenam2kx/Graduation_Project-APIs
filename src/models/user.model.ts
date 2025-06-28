@@ -17,6 +17,8 @@ export interface IUser extends SoftDeleteDocument {
   status?: string
   refreshToken?: string
   refreshTokenExpired?: Date
+  passwordResetToken?: string
+  passwordResetExpires?: Date
   createdBy?: {
     _id: string
     email: string
@@ -48,6 +50,8 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     refreshToken: { type: String },
     refreshTokenExpired: { type: Date },
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
     createdBy: {
       _id: { type: String },
       email: { type: String }

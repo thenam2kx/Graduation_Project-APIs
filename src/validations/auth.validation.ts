@@ -109,6 +109,11 @@ const resetPasswordValidation = async (req: Request, res: Response, next: NextFu
       'any.required': 'Mật khẩu là bắt buộc',
       'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
       'string.max': 'Mật khẩu không được vượt quá 255 ký tự'
+    }),
+    code: Joi.string().length(6).required().trim().messages({
+      'string.length': 'Mã xác minh phải đúng 6 ký tự',
+      'string.empty': 'Mã xác minh không được để trống',
+      'any.required': 'Mã xác minh là bắt buộc'
     })
   })
 

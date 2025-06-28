@@ -7,6 +7,7 @@ export interface ICartItem extends SoftDeleteDocument {
   productId: string
   variantId: string
   quantity: number
+  value?: string
   price: number
   createdBy?: {
     _id: string
@@ -25,6 +26,7 @@ const CartItemSchema = new Schema(
     variantId: { type: String, required: true, ref: 'product_variants' },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: false, min: 0 },
+    value: { type: String, required: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }

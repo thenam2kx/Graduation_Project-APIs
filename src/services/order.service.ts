@@ -46,16 +46,19 @@ export const ORDER_STATUS = [
 
 const handleCreateOrder = async (data: CreateOrderDTO) => {
   console.log('🚀 ~ handleCreateOrder ~ data:', data)
+  console.log('Creating order with payment method:', data.paymentMethod)
   const session = await mongoose.startSession()
   session.startTransaction()
   try {
     // 1. Validate các tham chiếu ngoại
     await isExistObject(UserModel, { _id: data.userId }, { checkExisted: false, errorMessage: 'User không tồn tại' })
-    await isExistObject(
-      AddressModel,
-      { _id: data.addressId },
-      { checkExisted: false, errorMessage: 'Address không tồn tại' }
-    )
+    if (data.addressId) {
+      await isExistObject(
+        AddressModel,
+        { _id: data.addressId },
+        { checkExisted: false, errorMessage: 'Address không tồn tại' }
+      )
+    }
     let discountPercent = 0
     let discountAmount = 0
     if (data.discountId) {
@@ -139,6 +142,10 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       price: it.price
     }))
     const orderItems = await OrderItemModel.insertMany(itemsToInsert, { session })
+
+    for (const it of data.items) {
+      await ProductVariantModel.updateOne({ _id: it.variantId }, { $inc: { stock: -it.quantity } }, { session })
+    }
 
     // 6. Commit
     await session.commitTransaction()
@@ -243,16 +250,50 @@ const handleUpdateStatusOrder = async (orderId: string, status: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Trạng thái đơn hàng không hợp lệ')
   }
 
-  const order = await OrderModel.findByIdAndUpdate(orderId, { status }, { new: true })
+  // Lấy thông tin đơn hàng hiện tại
+  const currentOrder = await OrderModel.findById(orderId)
+  if (!currentOrder) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
+  }
+
+  // Kiểm tra quy trình cập nhật trạng thái
+  const currentStatus = currentOrder.status
+  const validTransitions: Record<string, string[]> = {
+    'pending': ['confirmed', 'cancelled'],
+    'confirmed': ['processing', 'cancelled'],
+    'processing': ['shipped', 'cancelled'],
+    'shipped': ['delivered', 'cancelled'],
+    'delivered': ['completed', 'refunded'],
+    'completed': ['refunded'],
+    'cancelled': [],
+    'refunded': []
+  }
+
+  // Kiểm tra xem trạng thái mới có hợp lệ không
+  if (!validTransitions[currentStatus].includes(status) && status !== currentStatus) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST, 
+      `Không thể chuyển trạng thái từ "${currentStatus}" sang "${status}". Các trạng thái hợp lệ: ${validTransitions[currentStatus].join(', ')}`
+    )
+  }
+
+  // Cập nhật trạng thái thanh toán nếu cần
+  let updateData: any = { status }
+  
+  // Nếu đơn hàng có phương thức thanh toán tiền mặt và trạng thái mới là 'đã giao hàng'
+  // thì cập nhật trạng thái thanh toán thành 'đã thanh toán'
+  if (currentOrder.paymentMethod === 'cash' && status === 'delivered') {
+    updateData.paymentStatus = 'paid'
+    console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
+  }
+
+  // Cập nhật trạng thái đơn hàng
+  const order = await OrderModel.findByIdAndUpdate(orderId, updateData, { new: true })
     .populate('userId', 'name email')
     .populate('addressId')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
     .exec()
-
-  if (!order) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
-  }
 
   return order
 }
@@ -267,10 +308,144 @@ const handleFetchItemOfOrder = async (orderId: string) => {
   return order
 }
 
+const handleCancelOrder = async (orderId: string) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  try {
+    // Tìm đơn hàng theo ID
+    const order = await OrderModel.findById(orderId).session(session)
+    if (!order) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Đơn hàng không tồn tại')
+    }
+
+    // Kiểm tra trạng thái đơn hàng
+    if (order.status !== 'pending' && order.status !== 'processing') {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng ở trạng thái hiện tại')
+    }
+
+    // Cập nhật trạng thái đơn hàng thành 'cancelled'
+    order.status = 'cancelled'
+    await order.save({ session })
+
+    // Lấy tất cả các mục trong đơn hàng
+    const orderItems = await OrderItemModel.find({ orderId: order._id }).session(session)
+
+    // Cộng lại số lượng sản phẩm vào kho
+    for (const item of orderItems) {
+      await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
+    }
+
+    await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
+
+    // Commit transaction
+    await session.commitTransaction()
+    session.endSession()
+
+    return { message: 'Đơn hàng đã được hủy thành công', order }
+  } catch (err: any) {
+    await session.abortTransaction()
+    session.endSession()
+
+    // Xử lý lỗi
+    if (err instanceof ApiError) {
+      throw err
+    }
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, err.message || 'Lỗi khi hủy đơn hàng')
+  }
+}
+
+// Hàm mới để lấy tất cả đơn hàng cho Admin
+const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: any) => {
+  try {
+    console.log('handleFetchAllOrdersForAdmin called with:', { filter, sort, pagination })
+    
+    const currentPage = pagination?.page || 1
+    const limit = pagination?.limit || 10
+
+    if (filter.keyword) {
+      const keyword = String(filter.keyword).trim()
+      delete filter.keyword
+
+      if (keyword) {
+        filter.$or = [
+          { '_id': { $regex: keyword, $options: 'i' } },
+          { 'status': { $regex: keyword, $options: 'i' } },
+          { 'paymentMethod': { $regex: keyword, $options: 'i' } }
+        ]
+      }
+    }
+
+    delete filter.current
+    delete filter.pageSize
+
+    const offset = (+currentPage - 1) * +limit
+    const defaultLimit = +limit ? +limit : 10
+    
+    // Đếm tổng số đơn hàng trong database
+    const allOrdersCount = await OrderModel.countDocuments({})
+    console.log('Total orders in database:', allOrdersCount)
+    
+    // Hiển thị tất cả các đơn hàng trong database
+    const allOrders = await OrderModel.find({}).lean().exec()
+    console.log('All orders in database:', allOrders.map(order => ({
+      id: order._id,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus
+    })))
+    
+    const totalItems = await OrderModel.countDocuments(filter)
+    console.log('Orders matching filter:', totalItems)
+    
+    const totalPages = Math.ceil(totalItems / defaultLimit)
+
+    // Lấy danh sách đơn hàng
+    const results = await OrderModel.find(filter)
+      .skip(offset)
+      .limit(defaultLimit)
+      .sort(sort as any)
+      .populate('userId', 'name email')
+      .populate('addressId')
+      .populate('discountId', 'name value type startDate endDate')
+      .lean()
+      .exec()
+
+    console.log('Orders found after query:', results.length)
+
+    // Lấy thêm thông tin các sản phẩm trong đơn hàng
+    const ordersWithItems = await Promise.all(
+      results.map(async (order) => {
+        const items = await OrderItemModel.find({ orderId: order._id })
+          .populate('productId')
+          .populate('variantId')
+          .lean()
+          .exec()
+        console.log(`Order ${order._id} has ${items.length} items`)
+        return { ...order, items }
+      })
+    )
+
+    return {
+      meta: {
+        current: currentPage,
+        pageSize: defaultLimit,
+        pages: totalPages,
+        total: totalItems
+      },
+      results: ordersWithItems
+    }
+  } catch (error) {
+    console.error('Error fetching all orders for admin:', error)
+    throw error
+  }
+}
+
 export const orderService = {
   handleCreateOrder,
   handleFetchOrder,
   handleFetchAllOrders,
   handleUpdateStatusOrder,
-  handleFetchItemOfOrder
+  handleFetchItemOfOrder,
+  handleCancelOrder,
+  handleFetchAllOrdersForAdmin
 }

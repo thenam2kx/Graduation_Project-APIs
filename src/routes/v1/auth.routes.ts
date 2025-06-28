@@ -12,5 +12,11 @@ Router.route('/signin').post(authValidation.signinValidation, authController.sig
 Router.route('/signout').post(verifyAccessToken, authController.signout)
 Router.route('/refresh-token').get(authController.refreshToken)
 Router.route('/account').get(verifyAccessToken, authController.account)
+Router.route('/forgot-password').post(authValidation.forgotPasswordValidation, authController.forgotPassword)
+Router.route('/verify-forgot-password-code').post(
+  authValidation.verifyValidation,
+  authController.verifyForgotPasswordCode
+)
+Router.route('/reset-password').post(authValidation.resetPasswordValidation, authController.resetPassword)
 
 export const authRoute = Router

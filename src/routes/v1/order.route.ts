@@ -5,12 +5,20 @@ import { orderValidation } from '~/validations/order.validation'
 
 const Router = express.Router()
 
-Router.route('/').post(verifyAccessToken, orderValidation.createOrderValidation, orderController.createOrder)
+Router.route('/')
+  .post(verifyAccessToken, orderValidation.createOrderValidation, orderController.createOrder)
+  .get(verifyAccessToken, orderController.fetchAllOrdersForAdmin)
 
 Router.route('/:orderId').get(
   verifyAccessToken,
   orderValidation.fetchOrderInfoValidation,
   orderController.fetchOrderInfo
+)
+
+Router.route('/:orderId/cancel').patch(
+  verifyAccessToken,
+  orderValidation.cancelOrderValidation,
+  orderController.cancelOrder
 )
 
 Router.route('/:orderId/status').patch(

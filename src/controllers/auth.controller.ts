@@ -159,6 +159,37 @@ const account = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body
+    const message = await authService.handleForgotPassword(email)
+    return sendApiResponse(res, 200, { statusCode: 200, message })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const verifyForgotPasswordCode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code } = req.body
+    const email = req.query.email as string
+    const message = await authService.handleVerifyForgotPasswordCode({ email, code })
+    return sendApiResponse(res, 200, { statusCode: 200, message })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password, code } = req.body
+    const message = await authService.handleResetPassword({ email, password, code })
+    return sendApiResponse(res, 200, { statusCode: 200, message })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const authController = {
   signup,
   verifyEmail,
@@ -166,5 +197,8 @@ export const authController = {
   signin,
   signout,
   refreshToken,
-  account
+  account,
+  forgotPassword,
+  verifyForgotPasswordCode,
+  resetPassword
 }
