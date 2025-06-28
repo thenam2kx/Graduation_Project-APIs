@@ -120,9 +120,31 @@ const handleCheckWishlist = async (userId: string, productId: string) => {
   }
 }
 
+const handleDeleteWishlistByProduct = async (userId: string, productId: string) => {
+  try {
+    const wishlist = await WishlistModel.findOne({
+      userId,
+      productId,
+      deleted: false
+    })
+
+    if (!wishlist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy sản phẩm trong danh sách yêu thích!')
+    }
+
+    await wishlist.delete()
+
+    return { message: 'Xóa sản phẩm khỏi danh sách yêu thích thành công!' }
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi xóa sản phẩm khỏi danh sách yêu thích!')
+  }
+}
+
 export const wishlistService = {
   handleCreateWishlist,
   handleFetchWishlistByUser,
   handleDeleteWishlist,
+  handleDeleteWishlistByProduct,
   handleCheckWishlist
 }

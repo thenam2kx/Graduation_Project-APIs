@@ -6,7 +6,14 @@ import sendApiResponse from '~/utils/response.message'
 
 const createWishlist = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await wishlistService.handleCreateWishlist(req.body)
+    const userId = req.user?._id
+    const { productId } = req.body
+
+    if (!userId) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không tìm thấy thông tin người dùng')
+    }
+
+    const result = await wishlistService.handleCreateWishlist({ userId, productId })
     sendApiResponse(res, StatusCodes.CREATED, {
       statusCode: StatusCodes.CREATED,
       message: 'Thêm vào danh sách yêu thích thành công!',
@@ -23,8 +30,13 @@ const createWishlist = async (req: Request, res: Response, next: NextFunction) =
 
 const fetchWishlistByUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params
+    const userId = req.user?._id
     const { current, pageSize, qs } = req.query
+
+    if (!userId) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không tìm thấy thông tin người dùng')
+    }
+
     const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
     const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
     const parsedQs =
@@ -59,7 +71,30 @@ const deleteWishlist = async (req: Request, res: Response, next: NextFunction) =
   try {
     const { wishlistId } = req.params
     const result = await wishlistService.handleDeleteWishlist(wishlistId)
-    
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Xóa sản phẩm khỏi danh sách yêu thích thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
+const deleteWishlistByProduct = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id
+    const { productId } = req.params
+
+    if (!userId) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không tìm thấy thông tin người dùng')
+    }
+
+    const result = await wishlistService.handleDeleteWishlistByProduct(userId, productId)
+
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
       message: 'Xóa sản phẩm khỏi danh sách yêu thích thành công!',
@@ -74,9 +109,15 @@ const deleteWishlist = async (req: Request, res: Response, next: NextFunction) =
 
 const checkWishlist = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId, productId } = req.params
+    const userId = req.user?._id
+    const { productId } = req.params
+
+    if (!userId) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không tìm thấy thông tin người dùng')
+    }
+
     const result = await wishlistService.handleCheckWishlist(userId, productId)
-    
+
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
       message: 'Kiểm tra danh sách yêu thích thành công!',
@@ -93,5 +134,6 @@ export const wishlistController = {
   createWishlist,
   fetchWishlistByUser,
   deleteWishlist,
+  deleteWishlistByProduct,
   checkWishlist
 }
