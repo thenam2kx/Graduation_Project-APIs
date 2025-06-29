@@ -248,6 +248,23 @@ const handleResetPassword = async ({ email, password, code }: { email: string; p
   return 'Đặt lại mật khẩu thành công'
 }
 
+const handleChangePassword = async (userId: string, currentPassword: string, newPassword: string) => {
+  const user = await UserModel.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Người dùng không tồn tại')
+  }
+
+  const isMatch = await comparePassword(currentPassword, user.password)
+  if (!isMatch) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Mật khẩu hiện tại không đúng')
+  }
+
+  const hashedNewPassword = await hashPassword(newPassword)
+  user.password = hashedNewPassword
+  await user.save()
+
+  return 'Đổi mật khẩu thành công'
+}
 export const authService = {
   handleSignup,
   handleVerifyEmail,
@@ -258,5 +275,6 @@ export const authService = {
   handleGetAccount,
   handleForgotPassword,
   handleVerifyForgotPasswordCode,
-  handleResetPassword
+  handleResetPassword,
+  handleChangePassword
 }
