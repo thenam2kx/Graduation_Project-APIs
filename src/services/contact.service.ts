@@ -12,18 +12,18 @@ const handleCreateContact = async (data: IContact) => {
 const handleFetchAllContact = async ({
   currentPage,
   limit,
-  qs
+  qs = ''
 }: {
   currentPage: number
   limit: number
-  qs: string
+  qs?: string // hoặc giữ nguyên string và gán default
 }) => {
-  const { filter, sort, population } = aqp(qs)
+  const { filter, sort, population } = aqp(qs || '') // ✅ đảm bảo qs là chuỗi
   delete filter.current
   delete filter.pageSize
 
   const offset = (currentPage - 1) * limit
-  const defaultLimit = limit ? limit : 10
+  const defaultLimit = limit || 10
   const totalItems = await ContactModel.countDocuments(filter)
   const totalPages = Math.ceil(totalItems / defaultLimit)
 
@@ -45,6 +45,7 @@ const handleFetchAllContact = async ({
     results
   }
 }
+
 
 const handleFetchInfoContact = async (contactId: string) => {
   const contact = await ContactModel.findById(contactId).lean().exec()

@@ -73,14 +73,14 @@ const updateContactValidation = async (req: Request, res: Response, next: NextFu
 
 // Lấy danh sách liên hệ (có phân trang, lọc)
 const fetchAllContactValidation = async (req: Request, res: Response, next: NextFunction) => {
-  const fetchAllContactschema = Joi.object({
-    current: Joi.number().optional().default(1).min(1),
-    pageSize: Joi.number().optional().default(10).min(1).max(100),
+  const schema = Joi.object({
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
     qs: Joi.string().optional()
   })
 
   try {
-    await fetchAllContactschema.validateAsync(req.query, { abortEarly: false })
+    await schema.validateAsync(req.query, { abortEarly: false })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
@@ -88,6 +88,7 @@ const fetchAllContactValidation = async (req: Request, res: Response, next: Next
     next(customError)
   }
 }
+
 
 // Lấy thông tin một liên hệ
 const fetchInfoContactValidation = async (req: Request, res: Response, next: NextFunction) => {

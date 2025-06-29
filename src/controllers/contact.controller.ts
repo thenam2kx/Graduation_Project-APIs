@@ -32,9 +32,10 @@ const createContact = async (req: Request, res: Response, next: NextFunction) =>
 
 const fetchAllContact = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { current, pageSize, qs } = req.query
-    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
-    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const { page, limit, qs } = req.query
+
+    const parsedCurrentPage = typeof page === 'string' ? parseInt(page, 10) : 1
+    const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : 10
     const parsedQs =
       typeof qs === 'string'
         ? qs
@@ -43,11 +44,13 @@ const fetchAllContact = async (req: Request, res: Response, next: NextFunction) 
           : typeof qs === 'object' && qs !== null
             ? JSON.stringify(qs)
             : ''
+
     const result = await contactService.handleFetchAllContact({
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
       qs: parsedQs
     })
+
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -70,6 +73,7 @@ const fetchAllContact = async (req: Request, res: Response, next: NextFunction) 
     next(customError)
   }
 }
+
 
 const fetchInfoContact = async (req: Request, res: Response, next: NextFunction) => {
   try {
