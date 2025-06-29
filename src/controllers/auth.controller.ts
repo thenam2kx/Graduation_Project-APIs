@@ -190,6 +190,27 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
   }
 }
 
+const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id
+    if (!userId) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Không xác định được người dùng')
+    }
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Vui lòng nhập đầy đủ thông tin')
+    }
+
+    const message = await authService.handleChangePassword(userId, currentPassword, newPassword)
+    return sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message
+    })
+  } catch (error) {
+    next(error)
+  }
+}
 export const authController = {
   signup,
   verifyEmail,
@@ -200,5 +221,6 @@ export const authController = {
   account,
   forgotPassword,
   verifyForgotPasswordCode,
-  resetPassword
+  resetPassword,
+  changePassword
 }
