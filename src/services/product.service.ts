@@ -168,6 +168,19 @@ const handleFetchAllProduct = async ({
     .lean()
     .exec()
 
+  // Xử lý giá sản phẩm và mô tả
+  const processedResults = results.map(product => {
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      // Lấy giá từ variant đầu tiên
+      product.price = product.variants[0].price
+    }
+    // Giữ nguyên HTML trong mô tả
+    // if (product.description) {
+    //   product.description = stripHtmlTags(product.description)
+    // }
+    return product
+  })
+
   return {
     meta: {
       current: currentPage,
@@ -175,7 +188,7 @@ const handleFetchAllProduct = async ({
       pages: totalPages,
       total: totalItems
     },
-    results
+    results: processedResults
   }
 }
 
@@ -208,6 +221,16 @@ const handleFetchInfoProduct = async (productId: string) => {
   if (!product) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại!')
   }
+
+  // Xử lý giá sản phẩm: nếu có variants thì lấy giá của variant đầu tiên
+  if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+    product.price = product.variants[0].price
+  }
+  
+  // Giữ nguyên HTML trong mô tả
+  // if (product.description) {
+  //   product.description = stripHtmlTags(product.description)
+  // }
 
   return product
 }
