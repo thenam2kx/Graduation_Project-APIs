@@ -145,11 +145,37 @@ const reSendCodeValidation = async (req: Request, res: Response, next: NextFunct
   }
 }
 
+const changePasswordValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const changePasswordSchema = Joi.object({
+    currentPassword: Joi.string().required().min(6).max(255).trim().messages({
+      'string.empty': 'Mật khẩu hiện tại không được để trống',
+      'any.required': 'Mật khẩu hiện tại là bắt buộc',
+      'string.min': 'Mật khẩu hiện tại phải có ít nhất 6 ký tự',
+      'string.max': 'Mật khẩu hiện tại không được vượt quá 255 ký tự'
+    }),
+    newPassword: Joi.string().required().min(6).max(255).trim().messages({
+      'string.empty': 'Mật khẩu mới không được để trống',
+      'any.required': 'Mật khẩu mới là bắt buộc',
+      'string.min': 'Mật khẩu mới phải có ít nhất 6 ký tự',
+      'string.max': 'Mật khẩu mới không được vượt quá 255 ký tự'
+    })
+  })
+
+  try {
+    await changePasswordSchema.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi kiểm tra dữ liệu'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
 export const authValidation = {
   signupValidation,
   signinValidation,
   verifyValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
-  reSendCodeValidation
+  reSendCodeValidation,
+  changePasswordValidation
 }

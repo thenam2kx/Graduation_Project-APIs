@@ -18,5 +18,10 @@ Router.route('/verify-forgot-password-code').post(
   authController.verifyForgotPasswordCode
 )
 Router.route('/reset-password').post(authValidation.resetPasswordValidation, authController.resetPassword)
+Router.route('/change-password').post(
+  verifyAccessToken,
+  authValidation.changePasswordValidation,
+  authController.changePassword
+)
 
 export const authRoute = Router
