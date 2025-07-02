@@ -127,7 +127,8 @@ const fetchItemOfOrder = async (req: Request, res: Response, next: NextFunction)
 const cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { orderId } = req.params
-    const result = await orderService.handleCancelOrder(orderId)
+    const { reason } = req.body
+    const result = await orderService.handleCancelOrder(orderId, reason) // truyền reason vào
     if (result) {
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
@@ -145,6 +146,7 @@ const cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
     next(customError)
   }
 }
+
 
 // API mới để lấy tất cả đơn hàng cho Admin
 const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFunction) => {
