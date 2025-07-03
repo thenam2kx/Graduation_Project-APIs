@@ -259,7 +259,7 @@ const handleFetchOrder = async (orderId: string) => {
   return order
 }
 
-const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:string) => {
+const handleUpdateStatusOrder = async (orderId: string, status: string, reason?: string) => {
   if (!orderId || !mongoose.isValidObjectId(orderId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'ID đơn hàng không hợp lệ')
   }
@@ -267,49 +267,42 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   if (!ORDER_STATUS.includes(status)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Trạng thái đơn hàng không hợp lệ')
   }
-  const updateUpload: any = { status }
-  if (['cancelled', 'refunded'].includes(status) && (reason)){
-    updateUpload.reason = reason
-  }
 
-  // Lấy thông tin đơn hàng hiện tại
   const currentOrder = await OrderModel.findById(orderId)
   if (!currentOrder) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
 
-  // Kiểm tra quy trình cập nhật trạng thái
   const currentStatus = currentOrder.status
   const validTransitions: Record<string, string[]> = {
-    'pending': ['confirmed', 'cancelled'],
-    'confirmed': ['processing', 'cancelled'],
-    'processing': ['shipped', 'cancelled'],
-    'shipped': ['delivered', 'cancelled'],
-    'delivered': ['completed', 'refunded'],
-    'completed': ['refunded'],
-    'cancelled': [],
-    'refunded': []
+    pending: ['confirmed', 'cancelled'],
+    confirmed: ['processing', 'cancelled'],
+    processing: ['shipped', 'cancelled'],
+    shipped: ['delivered', 'cancelled'],
+    delivered: ['completed', 'refunded'],
+    completed: ['refunded'],
+    cancelled: [],
+    refunded: []
   }
 
-  // Kiểm tra xem trạng thái mới có hợp lệ không
   if (!validTransitions[currentStatus].includes(status) && status !== currentStatus) {
     throw new ApiError(
-      StatusCodes.BAD_REQUEST, 
+      StatusCodes.BAD_REQUEST,
       `Không thể chuyển trạng thái từ "${currentStatus}" sang "${status}". Các trạng thái hợp lệ: ${validTransitions[currentStatus].join(', ')}`
     )
   }
 
-  // Cập nhật trạng thái thanh toán nếu cần
-  let updateData: any = { status }
-  
-  // Nếu đơn hàng có phương thức thanh toán tiền mặt và trạng thái mới là 'đã giao hàng'
-  // thì cập nhật trạng thái thanh toán thành 'đã thanh toán'
+  const updateData: any = { status }
+
+  if (['cancelled', 'refunded'].includes(status) && reason) {
+    updateData.reason = reason // ✅ Lúc này mới thực sự cập nhật
+  }
+
   if (currentOrder.paymentMethod === 'cash' && status === 'delivered') {
     updateData.paymentStatus = 'paid'
     console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
   }
 
-  // Cập nhật trạng thái đơn hàng
   const order = await OrderModel.findByIdAndUpdate(orderId, updateData, { new: true })
     .populate('userId', 'name email')
     .populate('addressId')
@@ -320,8 +313,10 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
+
   return order
 }
+
 
 const handleFetchItemOfOrder = async (orderId: string) => {
   const order = await OrderItemModel.find({ orderId }).populate('productId').populate('variantId').lean().exec()
@@ -333,7 +328,7 @@ const handleFetchItemOfOrder = async (orderId: string) => {
   return order
 }
 
-const handleCancelOrder = async (orderId: string) => {
+const handleCancelOrder = async (orderId: string, reason:string) => {
   const session = await mongoose.startSession()
   session.startTransaction()
   try {
@@ -350,6 +345,7 @@ const handleCancelOrder = async (orderId: string) => {
 
     // Cập nhật trạng thái đơn hàng thành 'cancelled'
     order.status = 'cancelled'
+    order.reason = reason
     await order.save({ session })
 
     // Lấy tất cả các mục trong đơn hàng

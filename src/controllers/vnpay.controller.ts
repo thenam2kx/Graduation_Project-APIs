@@ -78,7 +78,6 @@ export const vnpayController = {
                 orderId,
                 { 
                   paymentStatus: 'paid',
-                  status: 'confirmed' 
                 },
                 { new: true }
               )
@@ -139,7 +138,6 @@ export const vnpayController = {
               orderId,
               { 
                 paymentStatus: 'paid',
-                status: 'confirmed' 
               },
               { new: true }
             )
