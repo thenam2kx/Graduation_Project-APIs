@@ -9,6 +9,7 @@ import { Response } from 'express'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { createLogger } from '~/config/logger'
+import { cartService } from './cart.service'
 
 const logger = createLogger(__filename)
 
@@ -36,7 +37,11 @@ const handleSignup = async (data: IAuth) => {
       activationCode: verifyCode,
       author: result.fullName
     })
-    logger.info(`Tạo người dùng thành công: ${result.email}`)
+    const createCart = await cartService.handleCreateCart({ userId: result._id })
+    if (!createCart) {
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tạo giỏ hàng, vui lòng thử lại sau')
+    }
+
     return 'Tạo người dùng thành công'
   } else {
     throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tạo người dùng, vui lòng thử lại sau')
