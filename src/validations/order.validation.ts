@@ -11,7 +11,7 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'string.hex': 'userId phải là chuỗi hex hợp lệ',
       'any.required': 'userId là trường bắt buộc'
     }),
-    addressId: Joi.string().trim().length(24).hex().optional().label('addressId').messages({
+    addressId: Joi.string().trim().length(24).hex().allow(null).optional().label('addressId').messages({
       'string.base': 'addressId phải là chuỗi',
       'string.length': 'addressId phải có độ dài 24 ký tự',
       'string.hex': 'addressId phải là chuỗi hex hợp lệ',

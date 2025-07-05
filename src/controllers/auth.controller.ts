@@ -13,8 +13,8 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await authService.handleSignup(req.body as IAuth)
     if (result) {
-      sendApiResponse(res, StatusCodes.NO_CONTENT, {
-        statusCode: StatusCodes.NO_CONTENT,
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
         message: 'Đăng ký thành công',
         data: 'Đăng ký thành công'
       })
@@ -36,8 +36,8 @@ const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
     const code: string = req.body.code
     const result = await authService.handleVerifyEmail({ email, code })
     if (result) {
-      sendApiResponse(res, StatusCodes.NO_CONTENT, {
-        statusCode: StatusCodes.NO_CONTENT,
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
         message: 'Xác thực email thành công',
         data: result
       })

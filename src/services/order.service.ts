@@ -9,6 +9,7 @@ import ProductModel from '~/models/product.model'
 import ProductVariantModel from '~/models/product-variant.model'
 import { StatusCodes } from 'http-status-codes'
 import OrderItemModel, { IOrderItem } from '~/models/orderItems.model'
+import { sendEmail } from '~/utils/sendEmail'
 
 interface OrderItemInput {
   productId: string
@@ -314,9 +315,20 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
 
+  const user = await UserModel.findById(order.userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
+  }
+
+  sendEmail(user.email, 'Kích hoạt tài khoản', 'order-status', {
+    orderId: order._id,
+    userName: user.fullName,
+    currentStatus: order.status,
+    customerName: user.fullName
+  })
+
   return order
 }
-
 
 const handleFetchItemOfOrder = async (orderId: string) => {
   const order = await OrderItemModel.find({ orderId }).populate('productId').populate('variantId').lean().exec()
@@ -400,11 +412,11 @@ const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: 
 
     const offset = (+currentPage - 1) * +limit
     const defaultLimit = +limit ? +limit : 10
-    
+
     // Đếm tổng số đơn hàng trong database
     const allOrdersCount = await OrderModel.countDocuments({})
     console.log('Total orders in database:', allOrdersCount)
-    
+
     // Hiển thị tất cả các đơn hàng trong database
     const allOrders = await OrderModel.find({}).lean().exec()
     console.log('All orders in database:', allOrders.map(order => ({
@@ -413,10 +425,10 @@ const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: 
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus
     })))
-    
+
     const totalItems = await OrderModel.countDocuments(filter)
     console.log('Orders matching filter:', totalItems)
-    
+
     const totalPages = Math.ceil(totalItems / defaultLimit)
 
     // Lấy danh sách đơn hàng
