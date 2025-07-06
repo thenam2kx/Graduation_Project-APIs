@@ -47,17 +47,30 @@ export const ORDER_STATUS = Object.keys(ORDER_STATUS_LABELS)
 const handleCreateOrder = async (data: CreateOrderDTO) => {
   console.log('🚀 ~ handleCreateOrder ~ data:', data)
   console.log('Creating order with payment method:', data.paymentMethod)
+  console.log('Address data:', { addressId: data.addressId, addressFree: data.addressFree })
+  
+  // Log chi tiết về addressFree
+  if (data.addressFree) {
+    console.log('AddressFree details:', JSON.stringify(data.addressFree))
+  }
   const session = await mongoose.startSession()
   session.startTransaction()
   try {
     // 1. Validate các tham chiếu ngoại
-    await isExistObject(UserModel, { _id: data.userId }, { checkExisted: false, errorMessage: 'User không tồn tại' })
+    const userData = await UserModel.findById(data.userId).lean();
+    if (!userData) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại');
+    }
+    console.log('Found user data:', userData);
+    
+    // Kiểm tra và lấy thông tin địa chỉ nếu có
+    let addressData = null;
     if (data.addressId) {
-      await isExistObject(
-        AddressModel,
-        { _id: data.addressId },
-        { checkExisted: false, errorMessage: 'Address không tồn tại' }
-      )
+      addressData = await AddressModel.findById(data.addressId).lean();
+      if (!addressData) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Address không tồn tại');
+      }
+      console.log('Found address data:', addressData);
     }
     let discountPercent = 0
     let discountAmount = 0
@@ -113,24 +126,35 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }
 
     // 4. Tạo Order
-    const orderDoc = await OrderModel.create(
-      [
-        {
-          userId: data.userId,
-          addressId: data.addressId,
-          addressFree: data.addressFree,
-          totalPrice: data.totalPrice,
-          shippingPrice: data.shippingPrice,
-          discountId: data.discountId ?? null,
-          status: data.status ?? 'pending',
-          shippingMethod: data.shippingMethod ?? 'standard',
-          paymentMethod: data.paymentMethod ?? 'cash',
-          paymentStatus: data.paymentStatus ?? 'unpaid',
-          note: data.note ?? ''
-        }
-      ],
-      { session }
-    )
+    const orderData = {
+      userId: data.userId,
+      addressId: data.addressId,
+      addressFree: data.addressFree || null,
+      totalPrice: data.totalPrice,
+      shippingPrice: data.shippingPrice,
+      discountId: data.discountId ?? null,
+      status: data.status ?? 'pending',
+      shippingMethod: data.shippingMethod ?? 'standard',
+      paymentMethod: data.paymentMethod ?? 'cash',
+      paymentStatus: data.paymentStatus ?? 'unpaid',
+      note: data.note ?? ''
+    };
+    
+    // Nếu có addressId và đã tìm thấy thông tin địa chỉ, sao chép thông tin vào addressFree
+    if (addressData && !orderData.addressFree) {
+      console.log('Copying address data to addressFree');
+      orderData.addressFree = {
+        receiverName: userData?.fullName || userData?.name || 'Không có tên',
+        receiverPhone: userData?.phone || '',
+        province: addressData.province || '',
+        district: addressData.district || '',
+        ward: addressData.ward || '',
+        address: addressData.address || ''
+      };
+    }
+    
+    console.log('Creating order with data:', orderData);
+    const orderDoc = await OrderModel.create([orderData], { session })
     const order = orderDoc[0]
 
     // 5. Tạo OrderItem
@@ -305,8 +329,8 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   }
 
   const order = await OrderModel.findByIdAndUpdate(orderId, updateData, { new: true })
-    .populate('userId', 'name email')
-    .populate('addressId')
+    .populate('userId', 'fullName name email phone')
+    .populate('addressId', 'province district ward address')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
     .exec()
@@ -436,8 +460,8 @@ const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: 
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
-      .populate('userId', 'name email')
-      .populate('addressId')
+      .populate('userId', 'fullName name email phone')
+      .populate('addressId', 'province district ward address')
       .populate('discountId', 'name value type startDate endDate')
       .lean()
       .exec()
