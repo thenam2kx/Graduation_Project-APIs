@@ -17,23 +17,38 @@ const createOrderValidation = async (req: Request, res: Response, next: NextFunc
       'string.hex': 'addressId phải là chuỗi hex hợp lệ',
       'any.required': 'addressId là trường bắt buộc'
     }),
-    addressFree: Joi.object({
-      province: Joi.string().optional().messages({
-        'string.base': 'Tỉnh/Thành phố phải là chuỗi',
-        'any.required': 'province là bắt buộc'
+    addressFree: Joi.alternatives().try(
+      // Địa chỉ đầy đủ
+      Joi.object({
+        receiverName: Joi.string().required().messages({
+          'string.base': 'Tên người nhận phải là chuỗi',
+          'any.required': 'Tên người nhận không được để trống'
+        }),
+        receiverPhone: Joi.string().required().messages({
+          'string.base': 'Số điện thoại người nhận phải là chuỗi',
+          'any.required': 'Số điện thoại người nhận không được để trống'
+        }),
+        province: Joi.string().required().messages({
+          'string.base': 'Tỉnh/Thành phố phải là chuỗi',
+          'any.required': 'Tỉnh/Thành phố không được để trống'
+        }),
+        district: Joi.string().required().messages({
+          'string.base': 'Huyện/Quận phải là chuỗi',
+          'any.required': 'Huyện/Quận không được để trống'
+        }),
+        ward: Joi.string().required().messages({
+          'string.base': 'Xã/Phường phải là chuỗi',
+          'any.required': 'Xã/Phường không được để trống'
+        }),
+        address: Joi.string().required().messages({
+          'string.base': 'Địa chỉ nhà phải là chuỗi',
+          'any.required': 'Địa chỉ nhà không được để trống'
+        })
       }),
-      district: Joi.string().optional().messages({
-        'string.base': 'Huyện/Quận phải là chuỗi'
-      }),
-      ward: Joi.string().optional().messages({
-        'string.base': 'Xã/Phường phải là chuỗi'
-      }),
-      address: Joi.string().optional().messages({
-        'string.base': 'Địa chỉ nhà phải là chuỗi'
-      })
-    })
-      .optional()
-      .allow(null)
+      // Object rỗng hoặc null
+      Joi.object().length(0),
+      Joi.allow(null)
+    )
       .label('addressFree')
       .messages({
         'object.base': 'addressFree phải là một object'

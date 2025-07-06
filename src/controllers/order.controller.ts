@@ -156,8 +156,8 @@ const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFun
     // Trả về tất cả đơn hàng mà không cần filter, sắp xếp theo thời gian tạo mới nhất trước
     const allOrders = await OrderModel.find({})
       .sort({ createdAt: -1 }) // Sắp xếp giảm dần theo thời gian tạo
-      .populate('userId', 'name email phone')
-      .populate('addressId')
+      .populate('userId', 'fullName name email phone')
+      .populate('addressId', 'province district ward address')
       .populate('discountId', 'name value type startDate endDate')
       .lean()
       .exec()
