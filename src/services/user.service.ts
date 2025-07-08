@@ -4,9 +4,6 @@ import { hashPassword, isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-import { createLogger } from '~/config/logger'
-
-const logger = createLogger(__filename)
 
 const handleCreateUser = async (data: IUser) => {
   await isExistObject(UserModel, { email: data.email }, { checkExisted: true, errorMessage: 'Người dùng đã tồn tại' })
@@ -29,23 +26,52 @@ const handleFetchAllUser = async ({ currentPage, limit, qs }: { currentPage: num
     delete filter.keyword
 
     if (keyword) {
-      filter.$or = [{ name: { $regex: keyword, $options: 'i' } }, { phone: { $regex: keyword, $options: 'i' } }]
+      filter.$or = [{ fullName: { $regex: keyword, $options: 'i' } }, { email: { $regex: keyword, $options: 'i' } }]
     }
   }
 
-  logger.error('filter')
+  if (filter.status) {
+    const statuses = String(filter.status)
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s !== '')
+    delete filter.status
+
+    if (statuses.length === 1) {
+      filter.status = statuses[0]
+    } else if (statuses.length > 1) {
+      filter.status = { $in: statuses }
+    }
+  }
+
+  if (filter.role) {
+    const roles = String(filter.role)
+      .split(',')
+      .map((r) => r.trim())
+      .filter((r) => r !== '')
+    delete filter.role
+
+    if (roles.length === 1) {
+      filter.role = roles[0]
+    } else if (roles.length > 1) {
+      filter.role = { $in: roles }
+    }
+  }
 
   delete filter.current
   delete filter.pageSize
 
-  const offset = (+currentPage - 1) * +limit
-  const defaultLimit = +limit ? +limit : 10
-  const totalItems = await UserModel.countDocuments(filter)
-  const totalPages = Math.ceil(totalItems / defaultLimit)
+  const page = Math.max(1, currentPage)
+  const perPage = limit > 0 ? limit : 10
+  const offset = (page - 1) * perPage
 
+  const totalItems = await UserModel.countDocuments(filter)
+  const totalPages = Math.ceil(totalItems / perPage)
+
+  // Query dữ liệu
   const results = await UserModel.find(filter)
     .skip(offset)
-    .limit(defaultLimit)
+    .limit(perPage)
     .sort(sort as any)
     .select('-password')
     .populate(population)
@@ -54,8 +80,8 @@ const handleFetchAllUser = async ({ currentPage, limit, qs }: { currentPage: num
 
   return {
     meta: {
-      current: currentPage,
-      pageSize: defaultLimit,
+      current: page,
+      pageSize: perPage,
       pages: totalPages,
       total: totalItems
     },
