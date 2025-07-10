@@ -164,10 +164,29 @@ const deleteDiscounts = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
+const applyDiscount = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code, orderValue } = req.body
+    const result = await discountService.handleApplyDiscount(code, orderValue)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Áp dụng mã giảm giá thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const discountsController = {
   createDiscounts,
   fetchAllDiscounts,
   fetchDiscountsById,
   updateDiscounts,
-  deleteDiscounts
+  deleteDiscounts,
+  applyDiscount
 }

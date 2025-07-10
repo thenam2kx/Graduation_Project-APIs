@@ -149,10 +149,43 @@ const handleDeleteDiscounts = async (discountId: string): Promise<any> => {
   return discount
 }
 
+const handleApplyDiscount = async (code: string, orderValue: number) => {
+  const discount = await DiscountModel.findOne({ code }).lean()
+  if (!discount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  }
+
+  const now = new Date()
+  const startDate = new Date(discount.startDate)
+  const endDate = new Date(discount.endDate)
+
+  if (now < startDate || now > endDate) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc chưa có hiệu lực')
+  }
+
+  if (orderValue < discount.min_order_value) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, `Đơn hàng tối thiểu ${discount.min_order_value.toLocaleString('vi-VN')} VNĐ`)
+  }
+
+  let discountAmount = 0
+  if (discount.type === '%') {
+    discountAmount = Math.min((orderValue * discount.value) / 100, discount.max_discount_amount)
+  } else {
+    discountAmount = Math.min(discount.value, orderValue)
+  }
+
+  return {
+    discount,
+    discountAmount,
+    finalAmount: orderValue - discountAmount
+  }
+}
+
 export const discountService = {
   handleCreateDiscounts,
   handleFetchAllDiscounts,
   handleFetchDiscountsById,
   handleUpdateDiscounts,
-  handleDeleteDiscounts
+  handleDeleteDiscounts,
+  handleApplyDiscount
 }
