@@ -168,11 +168,12 @@ const handleFetchAllProduct = async ({
     .lean()
     .exec()
 
-  // Xử lý giá sản phẩm và mô tả
+  // Xử lý giá sản phẩm, tồn kho và mô tả
   const processedResults = results.map(product => {
     if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
       // Lấy giá từ variant đầu tiên
       product.price = product.variants[0].price
+      product.stock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0)
     }
     // Giữ nguyên HTML trong mô tả
     // if (product.description) {
@@ -222,11 +223,12 @@ const handleFetchInfoProduct = async (productId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại!')
   }
 
-  // Xử lý giá sản phẩm: nếu có variants thì lấy giá của variant đầu tiên
+  // Xử lý giá sản phẩm và tồn kho: nếu có variants thì lấy giá của variant đầu tiên và tổng tồn kho của tất cả variants
   if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
     product.price = product.variants[0].price
+    product.stock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0)
   }
-  
+
   // Giữ nguyên HTML trong mô tả
   // if (product.description) {
   //   product.description = stripHtmlTags(product.description)
