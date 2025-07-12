@@ -392,7 +392,8 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
       await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
     }
 
-    await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
+    // KHÔNG xóa các mục trong đơn hàng nữa
+    // await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
 
     // Commit transaction
     await session.commitTransaction()
