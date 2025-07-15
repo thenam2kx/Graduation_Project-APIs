@@ -21,6 +21,7 @@ import { flashSaleItemRoute } from './flash_sale_item.routes'
 import { cronJobRoute } from './cron_job.routes'
 import { wishlistRoute } from './wishlist.routes'
 import { vnpayRoute } from './vnpay.routes'
+import ghnRoutes from './ghn.routes'
 
 const Router = express.Router()
 
@@ -47,5 +48,6 @@ Router.use('/cron-jobs', cronJobRoute)
 Router.use('/wishlist', wishlistRoute)
 Router.use('/wishlists', wishlistRoute)
 Router.use('/vnpay', vnpayRoute)
+Router.use('/ghn', ghnRoutes)
 
 export const APIs_v1 = Router

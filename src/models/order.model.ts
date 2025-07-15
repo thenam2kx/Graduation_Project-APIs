@@ -19,6 +19,14 @@ export interface IOrder extends SoftDeleteDocument {
   paymentStatus?: string
   note?: string
   reason?: string
+  // GHN shipping information
+  shipping?: {
+    orderCode?: string
+    expectedDeliveryTime?: string
+    statusCode?: string
+    statusName?: string
+    fee?: number
+  }
   createdBy?: {
     _id: string
     email: string
@@ -53,6 +61,13 @@ const OrderSchema: Schema<IOrder> = new mongoose.Schema(
     reason: {
       type: String,
       default: ''
+    },
+    shipping: {
+      orderCode: { type: String },
+      expectedDeliveryTime: { type: String },
+      statusCode: { type: String },
+      statusName: { type: String },
+      fee: { type: Number }
     },
     createdBy: {
       _id: { type: String },
