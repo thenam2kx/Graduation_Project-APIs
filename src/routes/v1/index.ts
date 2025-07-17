@@ -22,6 +22,7 @@ import { cronJobRoute } from './cron_job.routes'
 import { wishlistRoute } from './wishlist.routes'
 import { vnpayRoute } from './vnpay.routes'
 import ghnRoutes from './ghn.routes'
+import { shippingRoute } from './shipping.routes'
 
 const Router = express.Router()
 
@@ -49,5 +50,6 @@ Router.use('/wishlist', wishlistRoute)
 Router.use('/wishlists', wishlistRoute)
 Router.use('/vnpay', vnpayRoute)
 Router.use('/ghn', ghnRoutes)
+Router.use('/shipping', shippingRoute)
 
 export const APIs_v1 = Router

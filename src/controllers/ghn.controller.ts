@@ -227,7 +227,8 @@ const createShippingOrder = async (req: Request, res: Response, next: NextFuncti
           statusCode: 'ready_to_pick',
           statusName: 'Đã tiếp nhận'
         },
-        status: 'processing' // Update order status to processing
+        status: 'processing', // Update order status to processing
+        paymentStatus: order.paymentMethod === 'cash' ? 'unpaid' : order.paymentStatus // Ensure payment status is consistent
       },
       { new: true }
     )
@@ -272,12 +273,39 @@ const getShippingOrderStatus = async (req: Request, res: Response, next: NextFun
     // Get shipping order status from GHN
     const status = await ghnService.getOrderStatus(order.shipping.orderCode)
 
-    // Update order with latest shipping status
+    // Đồng bộ trạng thái đơn hàng theo trạng thái vận chuyển
+    // Map trạng thái vận chuyển sang trạng thái đơn hàng cũ
+    const shippingToOrderStatusMap: Record<string, string> = {
+      'ready_to_pick': 'processing',
+      'picking': 'processing',
+      'picked': 'shipped',
+      'delivering': 'shipped',
+      'delivered': 'delivered',
+      'delivery_fail': 'cancelled',
+      'waiting_to_return': 'cancelled',
+      'return': 'cancelled',
+      'returned': 'cancelled',
+      'cancel': 'cancelled',
+      'exception': 'cancelled'
+    }
+    
+    // Ánh xạ trạng thái vận chuyển sang trạng thái đơn hàng cũ
+    const orderStatus = shippingToOrderStatusMap[status.status] || 'processing'
+    
+    // Xác định trạng thái thanh toán dựa trên trạng thái vận chuyển
+    let paymentStatus = order.paymentStatus
+    if (status.status === 'delivered' && order.paymentMethod === 'cash') {
+      paymentStatus = 'paid'
+    }
+    
+    // Update order with latest shipping status, order status and payment status
     const updatedOrder = await OrderModel.findByIdAndUpdate(
       orderId,
       {
         'shipping.statusCode': status.status,
-        'shipping.statusName': status.status_name
+        'shipping.statusName': status.status_name,
+        status: orderStatus,
+        paymentStatus: paymentStatus
       },
       { new: true }
     )
@@ -322,14 +350,15 @@ const cancelShippingOrder = async (req: Request, res: Response, next: NextFuncti
     // Cancel shipping order with GHN
     const result = await ghnService.cancelOrder(order.shipping.orderCode)
 
-    // Update order status
+    // Update order status and payment status
     const updatedOrder = await OrderModel.findByIdAndUpdate(
       orderId,
       {
         status: 'cancelled',
         reason: req.body.reason || 'Hủy bởi người dùng',
         'shipping.statusCode': 'cancel',
-        'shipping.statusName': 'Đã hủy'
+        'shipping.statusName': 'Đã hủy',
+        paymentStatus: 'cancelled' // Update payment status to cancelled
       },
       { new: true }
     )

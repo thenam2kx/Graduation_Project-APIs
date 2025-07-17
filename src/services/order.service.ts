@@ -38,7 +38,7 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   processing: 'Đang xử lý',
   shipped: 'Đã gửi hàng',
   delivered: 'Đã giao hàng',
-  completed: 'Đã hoàn thành',
+  completed: 'Đã hoàn thành',
   cancelled: 'Đã hủy',
   refunded: 'Đã hoàn tiền'
 }
@@ -136,7 +136,7 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       status: data.status ?? 'pending',
       shippingMethod: data.shippingMethod ?? 'standard',
       paymentMethod: data.paymentMethod ?? 'cash',
-      paymentStatus: data.paymentStatus ?? 'unpaid',
+      paymentStatus: data.paymentMethod === 'vnpay' ? 'paid' : 'unpaid', // Nếu thanh toán VNPAY thì đã thanh toán
       note: data.note ?? ''
     };
     
@@ -301,9 +301,9 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   const currentStatus = currentOrder.status
   const validTransitions: Record<string, string[]> = {
     pending: ['confirmed', 'cancelled'],
-    confirmed: ['processing', 'cancelled'],
-    processing: ['shipped', 'cancelled'],
-    shipped: ['delivered', 'cancelled'],
+    confirmed: ['processing'],
+    processing: ['shipped'],
+    shipped: ['delivered'],
     delivered: ['completed', 'refunded'],
     completed: ['refunded'],
     cancelled: [],
@@ -323,7 +323,14 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
     updateData.reason = reason // ✅ Lúc này mới thực sự cập nhật
   }
 
-  if (currentOrder.paymentMethod === 'cash' && status === 'delivered') {
+  // Cập nhật trạng thái thanh toán dựa trên trạng thái đơn hàng
+  if (status === 'delivered' && currentOrder.paymentMethod === 'cash') {
+    updateData.paymentStatus = 'paid'
+    console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
+  } else if (status === 'cancelled') {
+    updateData.paymentStatus = 'cancelled'
+    console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã hủy'`)
+  } else if (status === 'completed' && currentOrder.paymentMethod !== 'cash') {
     updateData.paymentStatus = 'paid'
     console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
   }
@@ -374,14 +381,15 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Đơn hàng không tồn tại')
     }
 
-    // Kiểm tra trạng thái đơn hàng
-    if (order.status !== 'pending' && order.status !== 'processing') {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng ở trạng thái hiện tại')
+    // Kiểm tra trạng thái đơn hàng - chỉ cho phép hủy đơn hàng ở trạng thái chờ xác nhận
+    if (order.status !== 'pending') {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng đã được xử lý')
     }
 
-    // Cập nhật trạng thái đơn hàng thành 'cancelled'
+    // Cập nhật trạng thái đơn hàng thành 'cancelled' và trạng thái thanh toán thành 'cancelled'
     order.status = 'cancelled'
     order.reason = reason
+    order.paymentStatus = 'cancelled'
     await order.save({ session })
 
     // Lấy tất cả các mục trong đơn hàng
