@@ -1,11 +1,7 @@
 import axios from 'axios'
 import { StatusCodes } from 'http-status-codes'
+import { GHN_CONFIG } from '~/config/ghn'
 import ApiError from '~/utils/ApiError'
-
-// GHN API Configuration
-const GHN_API_URL = 'https://dev-online-gateway.ghn.vn/shiip/public-api'
-const GHN_TOKEN = '0ebc1f84-5ff5-11f0-9b81-222185cb68c8'
-const GHN_SHOP_ID = '197102'
 
 // Interface for GHN API responses
 interface GHNResponse<T> {
@@ -49,6 +45,14 @@ interface ShippingFeeRequest {
   insurance_value?: number
   service_id?: number
   coupon?: string
+}
+
+// Interface for available services
+interface ShippingService {
+  service_id: number
+  short_name: string
+  service_type_id: number
+  extra_cost_id?: number
 }
 
 // Interface for shipping fee response
@@ -121,11 +125,11 @@ interface OrderStatus {
  */
 class GHNService {
   private axiosInstance = axios.create({
-    baseURL: GHN_API_URL,
+    baseURL: GHN_CONFIG.API_URL,
     headers: {
       'Content-Type': 'application/json',
-      'Token': GHN_TOKEN,
-      'ShopId': GHN_SHOP_ID
+      Token: GHN_CONFIG.TOKEN,
+      ShopId: GHN_CONFIG.SHOP_ID.toString()
     }
   })
 
@@ -138,10 +142,7 @@ class GHNService {
       return response.data.data
     } catch (error: any) {
       console.error('Error fetching provinces from GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể lấy danh sách tỉnh/thành phố từ GHN'
-      )
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách tỉnh/thành phố từ GHN')
     }
   }
 
@@ -156,10 +157,7 @@ class GHNService {
       return response.data.data
     } catch (error: any) {
       console.error('Error fetching districts from GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể lấy danh sách quận/huyện từ GHN'
-      )
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách quận/huyện từ GHN')
     }
   }
 
@@ -174,10 +172,27 @@ class GHNService {
       return response.data.data
     } catch (error: any) {
       console.error('Error fetching wards from GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể lấy danh sách phường/xã từ GHN'
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách phường/xã từ GHN')
+    }
+  }
+
+  /**
+   * Get available shipping services
+   */
+  async getAvailableServices(fromDistrictId: number, toDistrictId: number): Promise<ShippingService[]> {
+    try {
+      const response = await this.axiosInstance.post<GHNResponse<ShippingService[]>>(
+        '/v2/shipping-order/available-services',
+        {
+          shop_id: GHN_CONFIG.SHOP_ID,
+          from_district: fromDistrictId,
+          to_district: toDistrictId
+        }
       )
+      return response.data.data
+    } catch (error: any) {
+      console.error('Error fetching available services from GHN:', error.response?.data || error.message)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách dịch vụ vận chuyển từ GHN')
     }
   }
 
@@ -186,17 +201,22 @@ class GHNService {
    */
   async calculateShippingFee(data: ShippingFeeRequest): Promise<ShippingFeeResponse> {
     try {
+      // Apply default values if not provided
+      const requestData = {
+        ...GHN_CONFIG.DEFAULT_PACKAGE,
+        ...data,
+        from_district_id: data.from_district_id || GHN_CONFIG.SHOP_INFO.district_id,
+        service_id: data.service_id || GHN_CONFIG.DEFAULT_SERVICE_ID
+      }
+
       const response = await this.axiosInstance.post<GHNResponse<ShippingFeeResponse>>(
         '/v2/shipping-order/fee',
-        data
+        requestData
       )
       return response.data.data
     } catch (error: any) {
       console.error('Error calculating shipping fee from GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể tính phí vận chuyển từ GHN'
-      )
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể tính phí vận chuyển từ GHN')
     }
   }
 
@@ -205,45 +225,45 @@ class GHNService {
    */
   async createOrder(data: CreateOrderRequest): Promise<CreateOrderResponse> {
     try {
-      console.log('Creating GHN order with data:', JSON.stringify(data));
-      
+      console.log('Creating GHN order with data:', JSON.stringify(data))
+
       // Validate phone number format
-      let toPhone = data.to_phone;
+      let toPhone = data.to_phone
       if (!toPhone || toPhone.length !== 10 || !toPhone.startsWith('0')) {
-        toPhone = '0987654321';
+        toPhone = '0987654321'
       }
-      
+
       // Add shop_id to the request data
       const requestData = {
         ...data,
         to_phone: toPhone, // Override with validated phone
-        shop_id: Number(GHN_SHOP_ID),
-        from_name: 'Shop Admin',
-        from_phone: '0987654321',
-        from_address: '123 Đường Test',
-        from_ward_name: 'Phường Bến Nghé',
-        from_district_name: 'Quận 1',
-        from_province_name: 'TP Hồ Chí Minh',
-        from_ward_code: '20308',
-        from_district_id: 1442
-      };
-      
+        shop_id: GHN_CONFIG.SHOP_ID,
+        from_name: GHN_CONFIG.SHOP_INFO.name,
+        from_phone: GHN_CONFIG.SHOP_INFO.phone,
+        from_address: GHN_CONFIG.SHOP_INFO.address,
+        from_ward_name: GHN_CONFIG.SHOP_INFO.ward_name,
+        from_district_name: GHN_CONFIG.SHOP_INFO.district_name,
+        from_province_name: GHN_CONFIG.SHOP_INFO.province_name,
+        from_ward_code: GHN_CONFIG.SHOP_INFO.ward_code,
+        from_district_id: GHN_CONFIG.SHOP_INFO.district_id
+      }
+
       const response = await this.axiosInstance.post<GHNResponse<CreateOrderResponse>>(
         '/v2/shipping-order/create',
         requestData
-      );
-      
-      console.log('GHN response:', response.data);
-      return response.data.data;
+      )
+
+      console.log('GHN response:', response.data)
+      return response.data.data
     } catch (error: any) {
-      console.error('Error creating order with GHN:', error.response?.data || error.message);
+      console.error('Error creating order with GHN:', error.response?.data || error.message)
       if (error.response?.data) {
-        console.error('GHN error details:', JSON.stringify(error.response.data));
+        console.error('GHN error details:', JSON.stringify(error.response.data))
       }
       throw new ApiError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         'Không thể tạo đơn vận chuyển với GHN: ' + (error.response?.data?.message || error.message)
-      );
+      )
     }
   }
 
@@ -252,17 +272,13 @@ class GHNService {
    */
   async getOrderStatus(orderCode: string): Promise<OrderStatus> {
     try {
-      const response = await this.axiosInstance.post<GHNResponse<OrderStatus>>(
-        '/v2/shipping-order/detail',
-        { order_code: orderCode }
-      )
+      const response = await this.axiosInstance.post<GHNResponse<OrderStatus>>('/v2/shipping-order/detail', {
+        order_code: orderCode
+      })
       return response.data.data
     } catch (error: any) {
       console.error('Error getting order status from GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể lấy trạng thái đơn hàng từ GHN'
-      )
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể lấy trạng thái đơn hàng từ GHN')
     }
   }
 
@@ -271,17 +287,13 @@ class GHNService {
    */
   async cancelOrder(orderCode: string): Promise<any> {
     try {
-      const response = await this.axiosInstance.post<GHNResponse<any>>(
-        '/v2/switch-status/cancel',
-        { order_codes: [orderCode] }
-      )
+      const response = await this.axiosInstance.post<GHNResponse<any>>('/v2/switch-status/cancel', {
+        order_codes: [orderCode]
+      })
       return response.data.data
     } catch (error: any) {
       console.error('Error canceling order with GHN:', error.response?.data || error.message)
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Không thể hủy đơn vận chuyển với GHN'
-      )
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không thể hủy đơn vận chuyển với GHN')
     }
   }
 }

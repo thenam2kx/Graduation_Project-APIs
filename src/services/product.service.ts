@@ -8,6 +8,7 @@ import '../models/brand.model'
 import mongoose, { Types } from 'mongoose'
 import ProductVariantModel from '~/models/product-variant.model'
 import VariantAttributeModel from '~/models/variant-attribute.model'
+import OrderItemModel from '~/models/orderItems.model'
 
 export interface IAttributeValue {
   attributeId: string
@@ -334,15 +335,25 @@ const handleDeleteProduct = async (productId: string) => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
     }
 
-    // 3. Soft-delete sản phẩm chính
+    // 3. Kiểm tra xem sản phẩm đã có trong đơn hàng nào chưa
+    const orderItemExists = await OrderItemModel.findOne({ productId: product._id, deleted: false }).session(session)
+    
+    if (orderItemExists) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST, 
+        'Không thể xóa sản phẩm này vì đã có trong đơn hàng. Vui lòng ngừng kinh doanh sản phẩm thay vì xóa.'
+      )
+    }
+
+    // 4. Soft-delete sản phẩm chính
     //    plugin mongoose-delete cung cấp method `delete()` trên document
     await product.delete({ session })
 
-    // 4. Soft-delete tất cả variant liên quan
+    // 5. Soft-delete tất cả variant liên quan
     //    Sử dụng Model.deleteMany hoặc statics do plugin cung cấp
     await ProductVariantModel.delete({ productId: product._id }).session(session)
 
-    // 5. Commit transaction
+    // 6. Commit transaction
     await session.commitTransaction()
     session.endSession()
 

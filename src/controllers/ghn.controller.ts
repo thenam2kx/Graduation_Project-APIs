@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
+import { GHN_CONFIG } from '~/config/ghn'
 import { ghnService } from '~/services/ghn.service'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
@@ -7,6 +8,7 @@ import OrderModel from '~/models/order.model'
 import OrderItemModel from '~/models/orderItems.model'
 import UserModel from '~/models/user.model'
 import AddressModel from '~/models/address.model'
+import { availableServicesSchema, shippingFeeSchema } from '~/validations/ghn.validation'
 
 /**
  * Get all provinces from GHN
@@ -79,24 +81,68 @@ const getWards = async (req: Request, res: Response, next: NextFunction) => {
 }
 
 /**
+ * Get available shipping services
+ */
+const getAvailableServices = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Validate query parameters
+    const { error, value } = availableServicesSchema.validate(req.query)
+    if (error) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, error.details[0].message)
+    }
+
+    const { fromDistrictId, toDistrictId } = value
+
+    // Use shop's district as default from_district if not provided
+    const fromDistrict = Number(fromDistrictId) || GHN_CONFIG.SHOP_INFO.district_id
+    const toDistrict = Number(toDistrictId)
+
+    const services = await ghnService.getAvailableServices(fromDistrict, toDistrict)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách dịch vụ vận chuyển thành công',
+      data: services
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lấy danh sách dịch vụ vận chuyển'
+    const statusCode = err.statusCode ?? StatusCodes.INTERNAL_SERVER_ERROR
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+/**
  * Calculate shipping fee
  */
 const calculateShippingFee = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const shippingData = req.body
-    if (!shippingData.to_district_id || !shippingData.to_ward_code) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin địa chỉ giao hàng')
+    // Validate request body
+    const { error, value } = shippingFeeSchema.validate(req.body)
+    if (error) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, error.details[0].message)
     }
 
-    // Default values for shop location (from_district_id)
-    const fromDistrictId = shippingData.from_district_id || 1454 // Default to Quận 1, HCMC
+    const shippingData = value
 
-    // Default values for package dimensions if not provided
+    // Default values for shop location (from_district_id)
+    const fromDistrictId = shippingData.from_district_id || GHN_CONFIG.SHOP_INFO.district_id
+
+    // Get package data from request or use defaults
     const packageData = {
-      weight: shippingData.weight || 500, // Default 500g
-      length: shippingData.length || 20,  // Default 20cm
-      width: shippingData.width || 20,    // Default 20cm
-      height: shippingData.height || 10   // Default 10cm
+      weight: shippingData.weight || GHN_CONFIG.DEFAULT_PACKAGE.weight,
+      length: shippingData.length || GHN_CONFIG.DEFAULT_PACKAGE.length,
+      width: shippingData.width || GHN_CONFIG.DEFAULT_PACKAGE.width,
+      height: shippingData.height || GHN_CONFIG.DEFAULT_PACKAGE.height
+    }
+
+    // If product IDs are provided, calculate weight based on products
+    if (shippingData.products && Array.isArray(shippingData.products) && shippingData.products.length > 0) {
+      // Here you would calculate weight based on products
+      // This is a placeholder - you would need to implement the actual logic
+      // Example: fetch products from database and sum their weights
+      console.log('Products provided for shipping calculation:', shippingData.products)
+      // packageData.weight = calculated weight based on products
     }
 
     const shippingFeeData = {
@@ -105,14 +151,18 @@ const calculateShippingFee = async (req: Request, res: Response, next: NextFunct
       to_ward_code: shippingData.to_ward_code,
       ...packageData,
       insurance_value: shippingData.insurance_value || 0,
-      service_id: shippingData.service_id || 0
+      service_id: shippingData.service_id || GHN_CONFIG.DEFAULT_SERVICE_ID
     }
 
     const fee = await ghnService.calculateShippingFee(shippingFeeData)
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
       message: 'Tính phí vận chuyển thành công',
-      data: fee
+      data: {
+        ...fee,
+        service_id: shippingFeeData.service_id,
+        estimated_delivery_time: '3-5 ngày' // Placeholder - GHN API doesn't always return this
+      }
     })
   } catch (error) {
     const err = error as ErrorWithStatus
@@ -178,16 +228,16 @@ const createShippingOrder = async (req: Request, res: Response, next: NextFuncti
     }))
 
     // Calculate total weight (grams)
-    const totalWeight = items.reduce((sum, item) => sum + (item.weight * item.quantity), 0)
+    const totalWeight = items.reduce((sum, item) => sum + item.weight * item.quantity, 0)
 
     // Log address data for debugging
-    console.log('Address data:', addressData);
-    console.log('User data:', user);
-    
+    console.log('Address data:', addressData)
+    console.log('User data:', user)
+
     // Hardcoded values for testing in sandbox environment
-    const toDistrictId = 1442; // Quận 2, HCMC
-    const toWardCode = '21211'; // Phường An Phú
-    
+    const toDistrictId = 1442 // Quận 2, HCMC
+    const toWardCode = '21211' // Phường An Phú
+
     // Prepare shipping order data
     const shippingOrderData = {
       payment_type_id: order.paymentMethod === 'cash' ? 2 : 1, // 2: COD, 1: Paid
@@ -209,9 +259,9 @@ const createShippingOrder = async (req: Request, res: Response, next: NextFuncti
       service_type_id: 2, // Standard service type
       items
     }
-    
+
     // Log shipping order data for debugging
-    console.log('Shipping order data:', shippingOrderData);
+    console.log('Shipping order data:', shippingOrderData)
 
     // Create shipping order with GHN
     const shippingOrder = await ghnService.createOrder(shippingOrderData)
@@ -276,28 +326,28 @@ const getShippingOrderStatus = async (req: Request, res: Response, next: NextFun
     // Đồng bộ trạng thái đơn hàng theo trạng thái vận chuyển
     // Map trạng thái vận chuyển sang trạng thái đơn hàng cũ
     const shippingToOrderStatusMap: Record<string, string> = {
-      'ready_to_pick': 'processing',
-      'picking': 'processing',
-      'picked': 'shipped',
-      'delivering': 'shipped',
-      'delivered': 'delivered',
-      'delivery_fail': 'cancelled',
-      'waiting_to_return': 'cancelled',
-      'return': 'cancelled',
-      'returned': 'cancelled',
-      'cancel': 'cancelled',
-      'exception': 'cancelled'
+      ready_to_pick: 'processing',
+      picking: 'processing',
+      picked: 'shipped',
+      delivering: 'shipped',
+      delivered: 'delivered',
+      delivery_fail: 'cancelled',
+      waiting_to_return: 'cancelled',
+      return: 'cancelled',
+      returned: 'cancelled',
+      cancel: 'cancelled',
+      exception: 'cancelled'
     }
-    
+
     // Ánh xạ trạng thái vận chuyển sang trạng thái đơn hàng cũ
     const orderStatus = shippingToOrderStatusMap[status.status] || 'processing'
-    
+
     // Xác định trạng thái thanh toán dựa trên trạng thái vận chuyển
     let paymentStatus = order.paymentStatus
     if (status.status === 'delivered' && order.paymentMethod === 'cash') {
       paymentStatus = 'paid'
     }
-    
+
     // Update order with latest shipping status, order status and payment status
     const updatedOrder = await OrderModel.findByIdAndUpdate(
       orderId,
@@ -384,6 +434,7 @@ export const ghnController = {
   getProvinces,
   getDistricts,
   getWards,
+  getAvailableServices,
   calculateShippingFee,
   createShippingOrder,
   getShippingOrderStatus,
