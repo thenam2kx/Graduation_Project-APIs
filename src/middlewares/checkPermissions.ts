@@ -8,18 +8,22 @@ interface User {
   role: string
 }
 
-const checkPermissions = (requiredRole: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+const checkPermissions = (requiredRoles: string | string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const token = req.headers.authorization?.split(' ')[1]
     if (!token) {
-      return res.status(401).send('Unauthorized')
+      res.status(401).send('Unauthorized')
+      return
     }
 
     try {
       const decoded = jwt.verify(token, configEnv.jwt.accessTokenSecret) as User
       req.user = decoded
 
-      if (req.user.role === requiredRole) {
+      // Chuyển đổi requiredRoles thành mảng nếu nó là string
+      const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles]
+
+      if (roles.includes(req.user.role)) {
         next()
       } else {
         res.status(403).send('Forbidden')
@@ -30,4 +34,5 @@ const checkPermissions = (requiredRole: string) => {
   }
 }
 
+export { checkPermissions }
 export default checkPermissions

@@ -23,6 +23,7 @@ import { wishlistRoute } from './wishlist.routes'
 import { vnpayRoute } from './vnpay.routes'
 import ghnRoutes from './ghn.routes'
 import { shippingRoute } from './shipping.routes'
+import { reviewRoute } from './review.routes'
 
 const Router = express.Router()
 
@@ -51,5 +52,6 @@ Router.use('/wishlists', wishlistRoute)
 Router.use('/vnpay', vnpayRoute)
 Router.use('/ghn', ghnRoutes)
 Router.use('/shipping', shippingRoute)
+Router.use('/reviews', reviewRoute)
 
 export const APIs_v1 = Router
