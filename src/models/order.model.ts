@@ -19,6 +19,12 @@ export interface IOrder extends SoftDeleteDocument {
   paymentStatus?: string
   note?: string
   reason?: string
+  items?: Array<{
+    productId: any
+    variantId: any
+    quantity: number
+    price: number
+  }>
   // GHN shipping information
   shipping?: {
     orderCode?: string
@@ -88,6 +94,17 @@ const OrderSchema: Schema<IOrder> = new mongoose.Schema(
     strict: true
   }
 )
+
+// Virtual field để lấy items từ OrderItem collection
+OrderSchema.virtual('items', {
+  ref: 'OrderItem',
+  localField: '_id',
+  foreignField: 'orderId',
+  justOne: false
+})
+
+OrderSchema.set('toObject', { virtuals: true })
+OrderSchema.set('toJSON', { virtuals: true })
 
 // Override all methods
 OrderSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })
