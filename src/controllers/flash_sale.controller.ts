@@ -214,6 +214,22 @@ const deactivateFlashSale = async (req: Request, res: Response, next: NextFuncti
   }
 }
 
+// Lấy sản phẩm Flash Sale đang hoạt động
+const getActiveFlashSaleProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await flashSaleService.handleGetActiveFlashSaleProducts()
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách sản phẩm Flash Sale thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const flashSaleController = {
   createFlashSale,
   fetchAllFlashSales,
@@ -221,5 +237,6 @@ export const flashSaleController = {
   updateFlashSale,
   deleteFlashSale,
   activateFlashSale,
-  deactivateFlashSale
+  deactivateFlashSale,
+  getActiveFlashSaleProducts
 }
