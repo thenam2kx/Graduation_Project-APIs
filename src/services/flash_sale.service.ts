@@ -9,6 +9,7 @@ export interface IFlashSale {
   description?: string
   startDate: Date
   endDate: Date
+  isActive?: boolean
 }
 
 const handleCreateFlashSale = async (flashSaleData: IFlashSale) => {
@@ -111,16 +112,18 @@ const handleActivateFlashSale = async (flashSaleId: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Flash sale đã kết thúc, không thể kích hoạt!')
   }
   
-  // Gọi service xử lý kích hoạt flash sale
-  try {
-    // Import và sử dụng service từ flash_sale_cron.service.ts
-    const { flashSaleCronService } = require('./flash_sale_cron.service')
-    await flashSaleCronService.handleFlashSaleStart(flashSaleId)
-    
-    return { message: 'Kích hoạt flash sale thành công' }
-  } catch (error) {
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi kích hoạt flash sale')
+  // Cập nhật trạng thái isActive = true
+  const updated = await FlashSaleModel.findByIdAndUpdate(
+    flashSaleId, 
+    { $set: { isActive: true } }, 
+    { new: true }
+  ).lean()
+  
+  if (!updated) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Flash sale không tồn tại!')
   }
+  
+  return { message: 'Kích hoạt flash sale thành công', data: updated }
 }
 
 // Hủy kích hoạt flash sale
@@ -134,15 +137,58 @@ const handleDeactivateFlashSale = async (flashSaleId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Flash sale không tồn tại!')
   }
   
-  // Gọi service xử lý hủy kích hoạt flash sale
+  // Cập nhật trạng thái isActive = false
+  const updated = await FlashSaleModel.findByIdAndUpdate(
+    flashSaleId, 
+    { $set: { isActive: false } }, 
+    { new: true }
+  ).lean()
+  
+  if (!updated) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Flash sale không tồn tại!')
+  }
+  
+  return { message: 'Hủy kích hoạt flash sale thành công', data: updated }
+}
+
+// Lấy sản phẩm Flash Sale đang hoạt động
+const handleGetActiveFlashSaleProducts = async () => {
   try {
-    // Import và sử dụng service từ flash_sale_cron.service.ts
-    const { flashSaleCronService } = require('./flash_sale_cron.service')
-    await flashSaleCronService.handleFlashSaleEnd(flashSaleId)
+    const FlashSaleItemModel = require('~/models/flash_sale_item.model').default
     
-    return { message: 'Hủy kích hoạt flash sale thành công' }
+    // Lấy tất cả flash sale đang hoạt động
+    const now = new Date()
+    const activeFlashSales = await FlashSaleModel.find({
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+      isActive: true,
+      deleted: false
+    }).lean()
+    
+    if (activeFlashSales.length === 0) {
+      return []
+    }
+    
+    const flashSaleIds = activeFlashSales.map(fs => fs._id)
+    
+    // Lấy tất cả flash sale items của các flash sale đang hoạt động
+    const flashSaleItems = await FlashSaleItemModel.find({
+      flashSaleId: { $in: flashSaleIds },
+      deleted: false
+    })
+    .populate({
+      path: 'productId',
+      select: 'name image price description slug categoryId brandId'
+    })
+    .populate({
+      path: 'variantId', 
+      select: 'price sku stock'
+    })
+    .lean()
+    
+    return flashSaleItems
   } catch (error) {
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi hủy kích hoạt flash sale')
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi lấy danh sách sản phẩm Flash Sale')
   }
 }
 
@@ -153,5 +199,6 @@ export const flashSaleService = {
   handleUpdateFlashSale,
   handleDeleteFlashSale,
   handleActivateFlashSale,
-  handleDeactivateFlashSale
+  handleDeactivateFlashSale,
+  handleGetActiveFlashSaleProducts
 }

@@ -6,6 +6,7 @@ export interface IFlashSale extends SoftDeleteDocument {
   description?: string
   startDate: Date
   endDate: Date
+  isActive: boolean
   createdBy?: {
     _id: string
     email: string
@@ -22,6 +23,7 @@ const FlashSaleSchema: Schema<IFlashSale> = new mongoose.Schema(
     description: { type: String, default: '' },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    isActive: { type: Boolean, default: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }

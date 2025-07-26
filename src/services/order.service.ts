@@ -351,11 +351,27 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
     throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
   }
 
-  sendEmail(user.email, 'Kích hoạt tài khoản', 'order-status', {
+  // Lấy thông tin chi tiết đơn hàng để gửi email
+  const orderItems = await OrderItemModel.find({ orderId: order._id })
+    .populate('productId', 'name image')
+    .populate('variantId', 'sku color size')
+    .lean()
+    .exec()
+
+  sendEmail(user.email, `Cập nhật đơn hàng #${order._id}`, 'order-status', {
     orderId: order._id,
-    userName: user.fullName,
-    currentStatus: order.status,
-    customerName: user.fullName
+    customerName: user.fullName || user.name,
+    currentStatus: ORDER_STATUS_LABELS[order.status] || order.status,
+    orderInfo: {
+      totalPrice: order.totalPrice,
+      shippingPrice: order.shippingPrice,
+      paymentMethod: order.paymentMethod,
+      shippingMethod: order.shippingMethod,
+      note: order.note,
+      createdAt: order.createdAt
+    },
+    items: orderItems,
+    address: order.addressFree || order.addressId
   })
 
   return order
