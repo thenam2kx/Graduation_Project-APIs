@@ -4,6 +4,7 @@ import { isExistObject, isValidMongoId } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import ProductModel from '~/models/product.model'
 
 const handleCreateCategory = async (data: ICategory) => {
   await isExistObject(CategoryModel, { slug: data.slug }, { checkExisted: true, errorMessage: 'Slug đã tồn tại' })
@@ -85,11 +86,25 @@ const handleUpdateCategory = async (categoryId: string, data: Partial<ICategory>
 
 const handleDeleteCategory = async (categoryId: string): Promise<any> => {
   isValidMongoId(categoryId)
-  const category = await CategoryModel.findByIdAndDelete(categoryId)
+
+  const category = await CategoryModel.findById(categoryId)
   if (!category) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục không tồn tại')
   }
-  return category
+
+  if (category.isDefault) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể xoá danh mục mặc định')
+  }
+
+  const defaultCategory = await CategoryModel.findOne({ isDefault: true })
+  if (!defaultCategory) {
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Không tìm thấy danh mục mặc định')
+  }
+
+  await ProductModel.updateMany({ categoryId: category._id }, { $set: { categoryId: defaultCategory._id } })
+
+  const deleted = await CategoryModel.findByIdAndDelete(category._id) // xoá sau cùng
+  return deleted
 }
 
 export const categoryService = {

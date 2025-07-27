@@ -7,6 +7,7 @@ export interface ICategory extends SoftDeleteDocument {
   slug: string
   icon: string
   isPublic: boolean
+  isDefault: boolean
   createdBy?: {
     _id: string
     email: string
@@ -23,6 +24,7 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
     slug: { type: String, required: true, unique: true },
     icon: { type: String, required: false },
     isPublic: { type: Boolean, default: false },
+    isDefault: { type: Boolean, default: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }
