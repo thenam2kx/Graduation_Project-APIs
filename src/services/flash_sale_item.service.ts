@@ -115,10 +115,90 @@ const handleDeleteFlashSaleItem = async (itemId: string) => {
   return { message: 'Xóa flash sale item thành công (soft-delete)' }
 }
 
+const handleFetchActiveFlashSaleItems = async () => {
+  const now = new Date()
+  
+  // Tìm flash sales đang hoạt động
+  const activeFlashSales = await FlashSaleItemModel.aggregate([
+    {
+      $lookup: {
+        from: 'flash_sales',
+        localField: 'flashSaleId',
+        foreignField: '_id',
+        as: 'flashSale'
+      }
+    },
+    {
+      $unwind: '$flashSale'
+    },
+    {
+      $match: {
+        'flashSale.isActive': true,
+        'flashSale.deleted': { $ne: true }
+      }
+    },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'productId',
+        foreignField: '_id',
+        as: 'productId'
+      }
+    },
+    {
+      $unwind: '$productId'
+    },
+    {
+      $lookup: {
+        from: 'variants',
+        localField: 'variantId',
+        foreignField: '_id',
+        as: 'variantId'
+      }
+    },
+    {
+      $unwind: {
+        path: '$variantId',
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $project: {
+        _id: 1,
+        flashSaleId: 1,
+        productId: {
+          _id: '$productId._id',
+          name: '$productId.name',
+          price: '$productId.price',
+          image: '$productId.image'
+        },
+        variantId: {
+          $cond: {
+            if: { $ne: ['$variantId', null] },
+            then: {
+              _id: '$variantId._id',
+              sku: '$variantId.sku',
+              price: '$variantId.price',
+              stock: '$variantId.stock'
+            },
+            else: null
+          }
+        },
+        discountPercent: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    }
+  ])
+  
+  return activeFlashSales
+}
+
 export const flashSaleItemService = {
   handleCreateFlashSaleItem,
   handleFetchAllFlashSaleItems,
   handleFetchInfoFlashSaleItem,
   handleUpdateFlashSaleItem,
-  handleDeleteFlashSaleItem
+  handleDeleteFlashSaleItem,
+  handleFetchActiveFlashSaleItems
 }
