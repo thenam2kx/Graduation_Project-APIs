@@ -148,10 +148,26 @@ const deleteFlashSaleItem = async (req: Request, res: Response, next: NextFuncti
   }
 }
 
+const fetchActiveFlashSaleItems = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await flashSaleItemService.handleFetchActiveFlashSaleItems()
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách sản phẩm flash sale đang hoạt động thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const flashSaleItemController = {
   createFlashSaleItem,
   fetchAllFlashSaleItems,
   fetchInfoFlashSaleItem,
   updateFlashSaleItem,
-  deleteFlashSaleItem
+  deleteFlashSaleItem,
+  fetchActiveFlashSaleItems
 }

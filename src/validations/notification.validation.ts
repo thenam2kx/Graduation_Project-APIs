@@ -8,8 +8,16 @@ const createNotificationValidation = async (req: Request, res: Response, next: N
     userId: Joi.string()
       .required()
       .trim()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .message('userId phải là một MongoDB ObjectId hợp lệ'),
+      .custom((value, helpers) => {
+        if (value === 'all') {
+          return value
+        }
+        if (!/^[0-9a-fA-F]{24}$/.test(value)) {
+          return helpers.error('any.invalid')
+        }
+        return value
+      })
+      .message('userId phải là "all" hoặc một MongoDB ObjectId hợp lệ'),
     title: Joi.string().required().min(1).max(255).trim(),
     content: Joi.string().required().trim(),
     isRead: Joi.boolean().optional(),

@@ -8,6 +8,9 @@ Router.route('/')
   .post(createFlashSaleItemValidation, flashSaleItemController.createFlashSaleItem)
   .get(flashSaleItemController.fetchAllFlashSaleItems)
 
+Router.route('/active')
+  .get(flashSaleItemController.fetchActiveFlashSaleItems)
+
 Router.route('/:itemId')
   .get(flashSaleItemController.fetchInfoFlashSaleItem)
   .patch(flashSaleItemController.updateFlashSaleItem)
