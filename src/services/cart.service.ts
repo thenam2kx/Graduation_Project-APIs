@@ -4,8 +4,44 @@ import CartModel, { ICart } from '~/models/cart.model'
 import CartItemModel, { ICartItem } from '~/models/cartitem.model'
 import ProductVariantModel from '~/models/product-variant.model'
 import ProductModel from '~/models/product.model'
+import FlashSaleItemModel from '~/models/flash_sale_item.model'
+import FlashSaleModel from '~/models/flash_sale.model'
 import mongoose from 'mongoose'
 import VariantAttributeModel from '~/models/variant-attribute.model'
+
+// Helper function để kiểm tra giá flash sale
+const getFlashSalePrice = async (productId: string, variantId: string) => {
+  try {
+    const now = new Date()
+    
+    // Tìm flash sale item cho variant cụ thể
+    const flashSaleItem = await FlashSaleItemModel.findOne({
+      productId,
+      variantId,
+      deleted: false
+    }).populate({
+      path: 'flashSaleId',
+      match: {
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        isActive: true,
+        deleted: false
+      }
+    }).lean()
+    
+    if (flashSaleItem && flashSaleItem.flashSaleId) {
+      return {
+        hasFlashSale: true,
+        discountPercent: flashSaleItem.discountPercent
+      }
+    }
+    
+    return { hasFlashSale: false, discountPercent: 0 }
+  } catch (error) {
+    console.error('Error checking flash sale:', error)
+    return { hasFlashSale: false, discountPercent: 0 }
+  }
+}
 
 const handleFetchCartByUser = async (userId: string) => {
   const carts = await CartModel.findOne({ userId }).populate('userId', 'name email').lean().exec()
@@ -53,10 +89,26 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Giá sản phẩm không hợp lệ')
     }
 
-    // 3. Thêm mới hoặc cập nhật số lượng với upsert
+    // 3. Kiểm tra giá flash sale
+    const flashSaleInfo = await getFlashSalePrice(item.productId, item.variantId)
+    let finalPrice = variant.price
+    
+    if (flashSaleInfo.hasFlashSale) {
+      finalPrice = variant.price * (1 - flashSaleInfo.discountPercent / 100)
+    }
+
+    // 4. Thêm mới hoặc cập nhật số lượng với upsert
     const updatedItem = await CartItemModel.findOneAndUpdate(
       { cartId, productId: item.productId, variantId: item.variantId, value: valueProduct?.value },
-      { $inc: { quantity: item.quantity } },
+      { 
+        $inc: { quantity: item.quantity },
+        $set: { 
+          price: finalPrice,
+          originalPrice: variant.price,
+          hasFlashSale: flashSaleInfo.hasFlashSale,
+          discountPercent: flashSaleInfo.discountPercent
+        }
+      },
       {
         new: true, // trả về document sau update
         upsert: true, // nếu chưa có thì create mới
@@ -66,7 +118,7 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
       }
     )
 
-    // 4. Sau khi update, kiểm tra tồn kho
+    // 5. Sau khi update, kiểm tra tồn kho
     if (updatedItem.quantity > variant.stock) {
       throw new ApiError(StatusCodes.BAD_REQUEST, `Không đủ hàng trong kho. Tồn kho: ${variant.stock}`)
     }
@@ -83,12 +135,56 @@ const handleAddItemToCart = async (cartId: string, item: ICartItem) => {
 
 // Lấy chi tiết giỏ hàng theo ID
 const handleFetchCartInfo = async (id: string) => {
-  const cartInfo = await CartItemModel.find({ cartId: id }).populate('productId').populate('variantId').lean().exec()
+  const cartInfo = await CartItemModel.find({ cartId: id })
+    .populate('productId')
+    .populate('variantId')
+    .lean()
+    .exec()
+  
   if (!cartInfo) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy giỏ hàng')
-  } else {
-    return cartInfo
   }
+  
+  // Cập nhật giá flash sale cho các item (nếu cần)
+  const updatedCartInfo = await Promise.all(
+    cartInfo.map(async (item) => {
+      const flashSaleInfo = await getFlashSalePrice(item.productId, item.variantId)
+      
+      // Nếu có flash sale mới hoặc flash sale đã hết hạn, cập nhật lại
+      if (item.hasFlashSale !== flashSaleInfo.hasFlashSale || 
+          item.discountPercent !== flashSaleInfo.discountPercent) {
+        
+        const variant = await ProductVariantModel.findById(item.variantId)
+        if (variant) {
+          const newPrice = flashSaleInfo.hasFlashSale 
+            ? variant.price * (1 - flashSaleInfo.discountPercent / 100)
+            : variant.price
+          
+          await CartItemModel.updateOne(
+            { _id: item._id },
+            {
+              price: newPrice,
+              originalPrice: variant.price,
+              hasFlashSale: flashSaleInfo.hasFlashSale,
+              discountPercent: flashSaleInfo.discountPercent
+            }
+          )
+          
+          return {
+            ...item,
+            price: newPrice,
+            originalPrice: variant.price,
+            hasFlashSale: flashSaleInfo.hasFlashSale,
+            discountPercent: flashSaleInfo.discountPercent
+          }
+        }
+      }
+      
+      return item
+    })
+  )
+  
+  return updatedCartInfo
 }
 
 // Cập nhật giỏ hàng
