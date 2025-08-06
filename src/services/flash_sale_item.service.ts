@@ -150,7 +150,7 @@ const handleFetchActiveFlashSaleItems = async () => {
     },
     {
       $lookup: {
-        from: 'variants',
+        from: 'product_variants',
         localField: 'variantId',
         foreignField: '_id',
         as: 'variantId'
