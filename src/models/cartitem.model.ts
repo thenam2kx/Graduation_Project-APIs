@@ -12,6 +12,7 @@ export interface ICartItem extends SoftDeleteDocument {
   originalPrice?: number
   hasFlashSale?: boolean
   discountPercent?: number
+  flashSaleItemId?: string
   createdBy?: {
     _id: string
     email: string
@@ -32,6 +33,7 @@ const CartItemSchema = new Schema(
     originalPrice: { type: Number, required: false, min: 0 },
     hasFlashSale: { type: Boolean, default: false },
     discountPercent: { type: Number, default: 0, min: 0, max: 100 },
+    flashSaleItemId: { type: String, required: false },
     value: { type: String, required: false },
     createdBy: {
       _id: { type: String },
