@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Liên hệ mới từ khách hàng</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin: 0; padding: 0; min-width: 100%; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; background-color: #FAFAFA; color: #222222;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #dc2626; padding: 24px; color: #ffffff;">
+      <h1 style="font-size: 24px; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 15px; text-align: center;">
+        🔔 Liên hệ mới từ khách hàng
+      </h1>
+    </div>
+    <div style="padding: 24px; background-color: #ffffff;">
+      <p style="margin-top: 0; margin-bottom: 24px;">Xin chào Admin,</p>
+      <p style="margin-top: 0; margin-bottom: 24px;">
+        Bạn có một liên hệ mới từ khách hàng cần được xử lý.
+      </p>
+      
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #dc2626;">
+        <h3 style="margin-top: 0; margin-bottom: 16px; color: #dc2626;">Thông tin khách hàng:</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 120px;">Tên:</td>
+            <td style="padding: 8px 0;"><%= name %></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Email:</td>
+            <td style="padding: 8px 0;"><%= email %></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Số điện thoại:</td>
+            <td style="padding: 8px 0;"><%= phone %></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Nội dung:</td>
+            <td style="padding: 8px 0;">
+              <div style="background-color: #ffffff; padding: 12px; border-radius: 4px; border: 1px solid #e5e7eb;">
+                <%= message %>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Thời gian:</td>
+            <td style="padding: 8px 0;"><%= createdAt %></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="http://localhost:3001/contact" 
+           style="display: inline-block; background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          Xem trong Admin Panel
+        </a>
+      </div>
+      
+      <p style="margin-top: 0; margin-bottom: 24px;">
+        Vui lòng phản hồi khách hàng trong thời gian sớm nhất.
+      </p>
+    </div>
+    <div style="background-color: #f6f6f6; padding: 24px;">
+      <p style="margin-top: 0; margin-bottom: 24px; text-align: center; font-size: 14px; color: #666;">
+        Email này được gửi tự động từ hệ thống Perfume Store
+      </p>
+    </div>
+  </div>
+</body>
+</html>

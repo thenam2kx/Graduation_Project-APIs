@@ -77,8 +77,8 @@ const fetchAllContact = async (req: Request, res: Response, next: NextFunction) 
 
 const fetchInfoContact = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { contactID } = req.params
-    const result = await contactService.handleFetchInfoContact(contactID)
+    const { contactId } = req.params
+    const result = await contactService.handleFetchInfoContact(contactId)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -131,8 +131,8 @@ const deleteContact = async (req: Request, res: Response, next: NextFunction) =>
 
 const updateContact= async( req: Request, res: Response, next: NextFunction ) => {
   try {
-    const { contactID } = req.params
-    const result = await contactService.handleUpdateContact(contactID, req.body)
+    const { contactId } = req.params
+    const result = await contactService.handleUpdateContact(contactId, req.body)
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
         statusCode: StatusCodes.BAD_REQUEST,
@@ -156,10 +156,29 @@ const updateContact= async( req: Request, res: Response, next: NextFunction ) =>
   }
 }
 
+const replyContact = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { contactId } = req.params
+    const { replyMessage } = req.body
+    const result = await contactService.handleReplyContact(contactId, replyMessage)
+    
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Gửi email phản hồi thành công',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 export const contactController = {
   createContact,
   fetchAllContact,
   deleteContact,
   fetchInfoContact,
-  updateContact
+  updateContact,
+  replyContact
 }
