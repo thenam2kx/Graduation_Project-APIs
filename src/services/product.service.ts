@@ -9,6 +9,7 @@ import mongoose, { Types } from 'mongoose'
 import ProductVariantModel from '~/models/product-variant.model'
 import VariantAttributeModel from '~/models/variant-attribute.model'
 import OrderItemModel from '~/models/orderItems.model'
+import FlashSaleItemModel from '~/models/flash_sale_item.model'
 
 export interface IAttributeValue {
   attributeId: string
@@ -265,9 +266,14 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
     })
     await existingProduct.save({ session })
 
-    // 3. Xóa hết variants và variantAttributes cũ của product này
-    const oldVariants = await ProductVariantModel.find({ productId }, '_id').session(session)
+    // 3. Lấy thông tin variants cũ và flash sale items liên quan
+    const oldVariants = await ProductVariantModel.find({ productId }).select('_id sku').session(session)
     const oldVariantIds = oldVariants.map(v => v._id)
+    const flashSaleItems = oldVariantIds.length > 0 
+      ? await FlashSaleItemModel.find({ variantId: { $in: oldVariantIds } }).session(session)
+      : []
+    
+    // Xóa variants và variantAttributes cũ
     if (oldVariantIds.length > 0) {
       await VariantAttributeModel.deleteMany({ variantId: { $in: oldVariantIds } }).session(session)
       await ProductVariantModel.deleteMany({ productId }).session(session)
@@ -285,7 +291,22 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
       }));
       const createdVariants = await ProductVariantModel.insertMany(variantDocs, { session })
 
-      // 4.2 Tạo VariantAttribute
+      // 4.2 Cập nhật flash sale items với variant mới (match theo SKU)
+      for (const flashSaleItem of flashSaleItems) {
+        const oldVariant = oldVariants.find(v => v._id.toString() === flashSaleItem.variantId.toString())
+        if (oldVariant) {
+          const newVariant = createdVariants.find(v => v.sku === oldVariant.sku)
+          if (newVariant) {
+            await FlashSaleItemModel.findByIdAndUpdate(
+              flashSaleItem._id,
+              { variantId: newVariant._id },
+              { session }
+            )
+          }
+        }
+      }
+
+      // 4.3 Tạo VariantAttribute
       const variantAttributes: IVariantAttribute[] = []
       createdVariants.forEach((createdVar, idx) => {
         const attrs = productData.variants[idx].attributes || []
@@ -299,6 +320,11 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
       })
       if (variantAttributes.length > 0) {
         await VariantAttributeModel.insertMany(variantAttributes, { session })
+      }
+    } else {
+      // Nếu không có variants mới, xóa flash sale items cũ
+      if (flashSaleItems.length > 0) {
+        await FlashSaleItemModel.deleteMany({ _id: { $in: flashSaleItems.map(item => item._id) } }).session(session)
       }
     }
 
