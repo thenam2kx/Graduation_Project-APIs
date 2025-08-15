@@ -32,10 +32,14 @@ export const createFlashSaleItemValidation = async (req: Request, res: Response,
       'number.base': 'limitQuantity phải là số',
       'number.min': 'limitQuantity tối thiểu là 1',
       'any.required': 'limitQuantity là trường bắt buộc'
+    }),
+    soldQuantity: Joi.number().min(0).optional().default(0).messages({
+      'number.base': 'soldQuantity phải là số',
+      'number.min': 'soldQuantity tối thiểu là 0'
     })
   })
   try {
-    await schema.validateAsync(req.body, { abortEarly: false })
+    await schema.validateAsync(req.body, { abortEarly: false, allowUnknown: true })
     next()
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
@@ -94,6 +98,10 @@ export const updateFlashSaleItemValidation = async (req: Request, res: Response,
     limitQuantity: Joi.number().min(1).optional().messages({
       'number.base': 'limitQuantity phải là số',
       'number.min': 'limitQuantity tối thiểu là 1'
+    }),
+    soldQuantity: Joi.number().min(0).optional().messages({
+      'number.base': 'soldQuantity phải là số',
+      'number.min': 'soldQuantity tối thiểu là 0'
     })
   })
   try {
