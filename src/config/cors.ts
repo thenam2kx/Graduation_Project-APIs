@@ -23,7 +23,7 @@ export const corsOptions = {
     }
 
     // Kiểm tra dem origin có phải là domain được chấp nhận hay không
-    if (WHITELIST_DOMAINS.includes(origin) || origin.endsWith('.onrender.com') || origin.endsWith('.vercel.app')) {
+    if (WHITELIST_DOMAINS.includes(origin) || origin.endsWith('.onrender.com') || origin.includes('vercel.app')) {
       return callback(null, true)
     }
 
