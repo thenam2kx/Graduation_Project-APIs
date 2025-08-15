@@ -8,6 +8,12 @@ Router.route('/')
   .post(contactValidation.createContactValidation, contactController.createContact)
   .get(contactValidation.fetchAllContactValidation, contactController.fetchAllContact)
 
+Router.route('/soft-delete/:contactId')
+  .patch(contactValidation.softDeleteContactValidation, contactController.updateContact)
+
+Router.route('/reply/:contactId')
+  .post(contactController.replyContact)
+
 Router.route('/:contactId')
   .get(contactValidation.fetchInfoContactValidation, contactController.fetchInfoContact)
   .patch(contactValidation.updateContactValidation, contactController.updateContact)
