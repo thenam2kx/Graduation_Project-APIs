@@ -13,8 +13,8 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon src/server.ts",
-    "preview": "cross-env NODE_ENV=production node dist/index.js",
-    "start": "node dist/index.js",
+    "preview": "cross-env NODE_ENV=production node dist/server.js",
+    "start": "node dist/server.js",
     "start:debug": "nodemon --inspect=9229 -e ts,tsx --exec node -r tsconfig-paths/register ./src/server.ts",
     "build": "rimraf ./dist && tsc --noCheck && tsc-alias",
     "lint": "eslint 'src/**/*.{ts,js}' --fix",
