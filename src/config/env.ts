@@ -3,10 +3,8 @@ import path from 'path'
 import Joi from 'joi'
 
 const envFile = `.env.${process.env.NODE_ENV || 'development'}`
-// Chỉ load file .env nếu không phải production hoặc file tồn tại
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config({ path: path.join(process.cwd(), envFile) })
-}
+// Load file .env tương ứng với môi trường
+dotenv.config({ path: path.join(process.cwd(), envFile) })
 
 const envVarsSchema = Joi.object()
   .keys({

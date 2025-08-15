@@ -2,8 +2,8 @@ export const WHITELIST_DOMAINS = [
   'http://localhost:5173', 
   'http://localhost:3000', 
   'http://localhost:8080',
-  'https://graduation-project-client-oc2for9na-minq05s-projects.vercel.app',
-  'https://graduation-project-admin-mok9qa0q3-minq05s-projects.vercel.app'
+  'https://graduation-project-client.vercel.app',
+  'https://graduation-project-admin.vercel.app'
 ]
 
 export const ERROR_MESSAGES = {
