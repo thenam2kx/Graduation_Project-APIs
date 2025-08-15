@@ -13,6 +13,11 @@ export const corsOptions = {
       return callback(null, true)
     }
 
+    // Cho phép undefined origin (postman, curl, etc)
+    if (!origin) {
+      return callback(null, true)
+    }
+
     // Kiểm tra dem origin có phải là domain được chấp nhận hay không
     if (WHITELIST_DOMAINS.includes(origin)) {
       return callback(null, true)
