@@ -1,4 +1,11 @@
-export const WHITELIST_DOMAINS = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080']
+export const WHITELIST_DOMAINS = [
+  'http://localhost:5173', 
+  'http://localhost:3000', 
+  'http://localhost:8080',
+  // Add production domains here when deployed
+  'https://your-client-domain.vercel.app',
+  'https://your-admin-domain.vercel.app'
+]
 
 export const ERROR_MESSAGES = {
   INVALID: {
