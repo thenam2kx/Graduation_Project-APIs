@@ -17,7 +17,7 @@ const connection = async () => {
     const option = {
       user: configEnv.mongoose.username,
       pass: configEnv.mongoose.password,
-      dbName: configEnv.mongoose.username
+      dbName: configEnv.mongoose.dbName
     }
     await mongoose.connect(configEnv.mongoose.uri, option)
     const state = Number(mongoose.connection.readyState)

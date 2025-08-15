@@ -41,6 +41,9 @@ const envVarsSchema = Joi.object()
     THROTTLER_TTL: Joi.number().default(60000).description('Throttle TTL (ms)'),
     THROTTLER_LIMIT: Joi.number().default(10).description('Max requests per TTL'),
 
+    // Cookie
+    COOKIE_SECRET: Joi.string().default('default-cookie-secret').description('Cookie Secret'),
+
     // Google OAuth
     OAUTH_GOOGLE_ID: Joi.string().required().description('Google OAuth Client ID'),
     OAUTH_GOOGLE_SECRET: Joi.string().required().description('Google OAuth Client Secret'),
@@ -56,8 +59,8 @@ if (error) {
 
 const configEnv = {
   app: {
-    port: envVars.APP_PORT,
-    host: envVars.APP_HOST
+    port: process.env.PORT || envVars.APP_PORT,
+    host: process.env.NODE_ENV === 'production' ? '0.0.0.0' : envVars.APP_HOST
   },
   buildMode: process.env.BUILD_MODE || 'development',
   codeExpires: envVars.CODE_EXPIRES,

@@ -42,6 +42,11 @@ app.use('/uploads', cors(corsOptions), (req, res, next) => {
   },
   express.static(path.join(__dirname, '../public/uploads')))
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() })
+})
+
 app.use('/api/v1', APIs_v1)
 // config static file
 app.use('/', async (req, res) => {
@@ -55,17 +60,33 @@ app.use(errorHandlingMiddleware)
 ;(async () => {
   try {
     await connection()
-    app.listen(configEnv.app.port, configEnv.app.host, () => {
-      console.log(`🚀 Sever running on http://${configEnv.app.host}:${configEnv.app.port}`)
+    const server = app.listen(configEnv.app.port, configEnv.app.host, () => {
+      console.log(`🚀 Server running on http://${configEnv.app.host}:${configEnv.app.port}`)
+      console.log(`🚀 Health check available at http://${configEnv.app.host}:${configEnv.app.port}/health`)
 
       // Khởi tạo các tác vụ cron cho flash sale
-      initFlashSaleCronJobs()
+      try {
+        initFlashSaleCronJobs()
+      } catch (cronError) {
+        console.warn('⚠️ Flash sale cron jobs initialization failed:', cronError)
+      }
 
       // Khởi tạo tất cả cron jobs từ database
-      const { cronJobService } = require('./services/cron_job.service')
-      cronJobService.initAllCronJobs()
+      try {
+        const { cronJobService } = require('./services/cron_job.service')
+        cronJobService.initAllCronJobs()
+      } catch (cronError) {
+        console.warn('⚠️ Database cron jobs initialization failed:', cronError)
+      }
     })
+
+    server.on('error', (error: any) => {
+      console.error('🚨 Server error:', error)
+      process.exit(1)
+    })
+
   } catch (error) {
-    console.log('🚀 async connection ~ ; ~ error:', error)
+    console.error('🚨 Failed to start server:', error)
+    process.exit(1)
   }
 })()
