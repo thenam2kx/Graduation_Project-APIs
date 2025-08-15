@@ -31,13 +31,18 @@ app.use(cookieParser(configEnv.cookie.secret))
 app.use(requestLimiter)
 
 // config security HTTP headers
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}))
 
 //config template engine
 configViewEngine(app)
 
 app.use('/uploads', cors(corsOptions), (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET')
     next()
   },
   express.static(path.join(__dirname, '../public/uploads')))

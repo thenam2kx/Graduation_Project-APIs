@@ -7,18 +7,28 @@ import configEnv from './env'
 export const corsOptions = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   origin: function (origin: any, callback: any) {
+    console.log('CORS Origin:', origin)
+    console.log('Build Mode:', configEnv.buildMode)
+    console.log('Whitelist:', WHITELIST_DOMAINS)
+    
     // Cho phép việc gọi API bằng POSTMAN trên môi trường dev,
     // Thông thường khi sử dụng postman thì cái origin sẽ có giá trị là undefined
     if (configEnv.buildMode === 'development') {
       return callback(null, true)
     }
 
+    // Cho phép undefined origin (postman, curl, etc)
+    if (!origin) {
+      return callback(null, true)
+    }
+
     // Kiểm tra dem origin có phải là domain được chấp nhận hay không
-    if (WHITELIST_DOMAINS.includes(origin)) {
+    if (WHITELIST_DOMAINS.includes(origin) || origin.endsWith('.onrender.com') || origin.includes('vercel.app')) {
       return callback(null, true)
     }
 
     // Cuối cùng nếu domain không được chấp nhận thì trả về lỗi
+    console.log('CORS BLOCKED:', origin)
     return callback(new ApiError(StatusCodes.FORBIDDEN, `${origin} not allowed by our CORS Policy.`))
   },
 
