@@ -16,7 +16,7 @@
     "preview": "cross-env NODE_ENV=production node dist/server.js",
     "start": "node dist/server.js",
     "start:debug": "nodemon --inspect=9229 -e ts,tsx --exec node -r tsconfig-paths/register ./src/server.ts",
-    "build": "rimraf ./dist && tsc --noCheck && tsc-alias",
+    "build": "npx rimraf ./dist && tsc --noCheck && tsc-alias",
     "lint": "eslint 'src/**/*.{ts,js}' --fix",
     "test": "jest",
     "test:watch": "jest --watch",
