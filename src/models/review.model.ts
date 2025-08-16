@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Schema, Document } from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
 
@@ -5,32 +6,32 @@ import mongoosePaginate from 'mongoose-paginate-v2';
 declare module 'mongoose' {
   interface PaginateModel<T> extends mongoose.Model<T> {
     paginate(query?: any, options?: any): Promise<{
-      docs: T[];
-      totalDocs: number;
-      limit: number;
-      page: number;
-      totalPages: number;
-      nextPage?: number | null;
-      prevPage?: number | null;
-      pagingCounter: number;
-      hasPrevPage: boolean;
-      hasNextPage: boolean;
-      meta?: any;
-    }>;
+      docs: T[]
+      totalDocs: number
+      limit: number
+      page: number
+      totalPages: number
+      nextPage?: number | null
+      prevPage?: number | null
+      pagingCounter: number
+      hasPrevPage: boolean
+      hasNextPage: boolean
+      meta?: any
+    }>
   }
 }
 
 export interface IReview extends Document {
-  userId: mongoose.Types.ObjectId | string;
-  productId: mongoose.Types.ObjectId | string;
-  orderId?: mongoose.Types.ObjectId | string;
-  rating: number;
-  comment: string;
-  images?: string[];
-  status: 'pending' | 'approved' | 'rejected';
-  rejectReason?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  userId: mongoose.Types.ObjectId | string
+  productId: mongoose.Types.ObjectId | string
+  orderId?: mongoose.Types.ObjectId | string
+  rating: number
+  comment: string
+  images?: string[]
+  status: 'pending' | 'approved' | 'rejected'
+  rejectReason?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 const reviewSchema = new Schema<IReview>(
@@ -79,11 +80,11 @@ const reviewSchema = new Schema<IReview>(
   }
 );
 
-// Đảm bảo mỗi người dùng chỉ có thể đánh giá một sản phẩm tối đa 2 lần
-reviewSchema.index({ userId: 1, productId: 1 });
+// Đảm bảo mỗi người dùng chỉ có thể đánh giá một sản phẩm tối đa 1 lần
+reviewSchema.index({ userId: 1, productId: 1 })
 
-reviewSchema.plugin(mongoosePaginate);
+reviewSchema.plugin(mongoosePaginate)
 
-const Review = mongoose.model<IReview, mongoose.PaginateModel<IReview>>('Review', reviewSchema);
+const Review = mongoose.model<IReview, mongoose.PaginateModel<IReview>>('Review', reviewSchema)
 
 export default Review;

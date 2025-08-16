@@ -31,17 +31,14 @@ const checkForBadWords = (text: string): boolean => {
 export const simpleTest = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
-    
     // Bước 1: Kiểm tra user
     const user = await UserModel.findById(userId)
     if (!user) {
       return res.json({ step: 1, error: 'User not found', userId })
     }
-    
     // Bước 2: Kiểm tra đơn hàng
     const allOrders = await OrderModel.find({ userId })
     const completedOrders = await OrderModel.find({ userId, status: 'completed' })
-    
     if (completedOrders.length === 0) {
       return res.json({ 
         step: 2, 
@@ -50,11 +47,9 @@ export const simpleTest = async (req: Request, res: Response) => {
         orderStatuses: allOrders.map(o => o.status)
       })
     }
-    
     // Bước 3: Kiểm tra OrderItems
     const orderIds = completedOrders.map(o => o._id)
     const orderItems = await OrderItemModel.find({ orderId: { $in: orderIds } })
-    
     if (orderItems.length === 0) {
       return res.json({ 
         step: 3, 
@@ -62,14 +57,11 @@ export const simpleTest = async (req: Request, res: Response) => {
         completedOrderIds: orderIds
       })
     }
-    
     // Bước 4: Kiểm tra Products
     const productIds = orderItems.map(oi => oi.productId)
     const products = await Product.find({ _id: { $in: productIds } })
-    
     // Bước 5: Kiểm tra Reviews
     const reviews = await Review.find({ userId })
-    
     return res.json({
       success: true,
       step: 'all_passed',
@@ -83,7 +75,6 @@ export const simpleTest = async (req: Request, res: Response) => {
         sampleProduct: products[0]
       }
     })
-    
   } catch (error) {
     res.json({ error: error.message, stack: error.stack })
   }
@@ -93,35 +84,28 @@ export const simpleTest = async (req: Request, res: Response) => {
 export const getReviewableProducts = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
-    
     const completedOrders = await OrderModel.find({
       userId,
       status: 'completed'
     })
-    
     if (completedOrders.length === 0) {
       return res.status(200).json(
         new ApiResponse(200, [], 'Không có đơn hàng đã hoàn thành nào')
       )
     }
-    
     const orderIds = completedOrders.map(order => order._id)
     const orderItems = await OrderItemModel.find({
       orderId: { $in: orderIds }
     })
-    
     const populatedOrderItems = await OrderItemModel.find({
       orderId: { $in: orderIds }
     }).populate('productId', 'name image price')
-    
     const validOrderItems = populatedOrderItems.filter(item => item.productId && item.productId._id)
-    
     if (validOrderItems.length === 0) {
       return res.status(200).json(
         new ApiResponse(200, [], 'Không có sản phẩm hợp lệ nào')
       )
     }
-    
     const productReviewCounts = await Review.aggregate([
       {
         $match: {
@@ -135,12 +119,10 @@ export const getReviewableProducts = async (req: Request, res: Response) => {
         }
       }
     ])
-    
     const reviewCountMap = new Map()
     productReviewCounts.forEach(item => {
       reviewCountMap.set(item._id.toString(), item.count)
     })
-    
     const reviewableProducts = validOrderItems
       .filter(item => {
         const productId = item.productId._id.toString()
@@ -157,17 +139,14 @@ export const getReviewableProducts = async (req: Request, res: Response) => {
         reviewCount: reviewCountMap.get(item.productId._id.toString()) || 0,
         canReview: true
       }))
-    
     const uniqueProducts = []
     const seenProductIds = new Set()
-    
     for (const product of reviewableProducts) {
       if (!seenProductIds.has(product.productId.toString())) {
         seenProductIds.add(product.productId.toString())
         uniqueProducts.push(product)
       }
     }
-    
     res.status(200).json(
       new ApiResponse(200, uniqueProducts, `Tìm thấy ${uniqueProducts.length} sản phẩm có thể đánh giá`)
     )
@@ -192,13 +171,11 @@ export const createReview = async (req: Request, res: Response) => {
       userId,
       status: 'completed'
     })
-    
     if (orders.length === 0) {
       throw new ApiError(403, 'Bạn chỉ có thể đánh giá sản phẩm từ đơn hàng đã hoàn thành')
     }
 
     const orderIds = orders.map(order => order._id)
-    
     let orderItem = await OrderItemModel.findOne({
       orderId: { $in: orderIds },
       productId: productId
@@ -225,7 +202,6 @@ export const createReview = async (req: Request, res: Response) => {
     if (hasBadWords) {
       throw new ApiError(400, 'Nội dung đánh giá chứa từ ngữ không phù hợp. Vui lòng viết lại.')
     }
-    
     const review = await Review.create({
       userId,
       productId,
@@ -252,7 +228,6 @@ export const getPublicReviews = async (req: Request, res: Response) => {
   try {
     const { limit = 10, sort = '-createdAt' } = req.query as { limit?: string, sort?: string }
     const limitNum = parseInt(limit as string, 10) || 10
-    
     // Chỉ lấy đánh giá đã approved
     const reviews = await Review.find({ status: 'approved' })
       .sort({ createdAt: -1 })
@@ -260,9 +235,7 @@ export const getPublicReviews = async (req: Request, res: Response) => {
       .populate('userId', 'fullName avatar email')
       .populate('productId', 'name image')
       .lean()
-    
     const total = await Review.countDocuments({ status: 'approved' })
-    
     res.status(200).json(
       new ApiResponse(200, {
         results: reviews,
@@ -373,22 +346,18 @@ export const getReviewsByProduct = async (req: Request, res: Response) => {
         }, 'Không có ID sản phẩm')
       )
     }
-    
     const { page = 1, limit = 10 } = req.query as { page?: string, limit?: string }
     const pageNum = parseInt(page as string, 10) || 1
     const limitNum = parseInt(limit as string, 10) || 10
-    
     // Tìm đánh giá đã approved
     let allReviews = await Review.find({
       productId,
       status: 'approved'
     }).sort({ createdAt: -1 }).lean()
-    
     // Lấy thông tin user riêng và gắn vào review
     for (let i = 0; i < allReviews.length; i++) {
       try {
         const user = await UserModel.findById(allReviews[i].userId).select('fullName email avatar').lean()
-        
         allReviews[i] = {
           ...allReviews[i],
           userId: {
@@ -408,11 +377,9 @@ export const getReviewsByProduct = async (req: Request, res: Response) => {
         }
       }
     }
-    
     const startIndex = (pageNum - 1) * limitNum
     const endIndex = startIndex + limitNum
     const paginatedReviews = allReviews.slice(startIndex, endIndex)
-    
     return res.status(200).json(
       new ApiResponse(200, {
         results: paginatedReviews,
@@ -682,7 +649,6 @@ export const debugDatabase = async (req: Request, res: Response) => {
       rating: r.rating,
       createdAt: r.createdAt
     })))
-    
     res.status(200).json(
       new ApiResponse(200, {
         orders: orders.map(o => ({ _id: o._id, status: o.status, userId: o.userId })),
@@ -720,10 +686,8 @@ export const getOrderProducts = async (req: Request, res: Response) => {
         new ApiResponse(200, [], 'Đơn hàng chưa hoàn thành')
       )
     }
-    
     const orderItems = await OrderItemModel.find({ orderId })
       .populate('productId', 'name image price')
-    
     const products = orderItems.map(item => ({
       productId: item.productId._id,
       productName: item.productId.name,
@@ -732,7 +696,6 @@ export const getOrderProducts = async (req: Request, res: Response) => {
       quantity: item.quantity,
       orderId: item.orderId
     }))
-    
     res.status(200).json(
       new ApiResponse(200, products, 'Danh sách sản phẩm trong đơn hàng')
     )
@@ -753,11 +716,9 @@ export const getOrderProducts = async (req: Request, res: Response) => {
 export const debugUser = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
-    
     const user = await UserModel.findById(userId)
     const userLean = await UserModel.findById(userId).lean()
     const userSelect = await UserModel.findById(userId).select('fullName avatar').lean()
-    
     res.status(200).json(
       new ApiResponse(200, {
         userId,
@@ -795,7 +756,6 @@ export const checkProductReviewableFromOrder = async (req: Request, res: Respons
     
     const orderItems = await OrderItemModel.find({ orderId })
       .populate('productId', 'name image')
-    
     if (orderItems.length === 0) {
       return res.status(200).json(
         new ApiResponse(200, {
