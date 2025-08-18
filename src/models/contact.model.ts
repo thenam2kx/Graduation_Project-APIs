@@ -7,6 +7,8 @@ export interface IContact extends SoftDeleteDocument {
   email: string
   phone: string
   message: string
+  replyMessage?: string
+  repliedAt?: Date
   createdAt: Date
   updatedAt: Date
   deletedAt?: Date
@@ -18,7 +20,9 @@ const ContactSchema: Schema<IContact> = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
-    message: { type: String, required: true }
+    message: { type: String, required: true },
+    replyMessage: { type: String },
+    repliedAt: { type: Date }
   },
   {
     timestamps: true,

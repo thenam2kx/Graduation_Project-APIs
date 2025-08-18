@@ -11,4 +11,7 @@ Router.post('/calculate', validateRequest(shippingValidation.calculateShippingFe
 // Lấy danh sách phương thức vận chuyển
 Router.get('/methods', shippingController.getShippingMethods)
 
+// Cập nhật trạng thái vận chuyển (webhook từ đơn vị vận chuyển)
+Router.patch('/status/:orderId', validateRequest(shippingValidation.updateShippingStatus), shippingController.updateShippingStatus)
+
 export const shippingRoute = Router

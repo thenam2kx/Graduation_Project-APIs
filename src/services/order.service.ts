@@ -489,90 +489,7 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
   }
 }
 
-// Hàm mới để lấy tất cả đơn hàng cho Admin
-const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: any) => {
-  try {
-    console.log('handleFetchAllOrdersForAdmin called with:', { filter, sort, pagination })
-    const currentPage = pagination?.page || 1
-    const limit = pagination?.limit || 10
 
-    if (filter.keyword) {
-      const keyword = String(filter.keyword).trim()
-      delete filter.keyword
-
-      if (keyword) {
-        filter.$or = [
-          { '_id': { $regex: keyword, $options: 'i' } },
-          { 'status': { $regex: keyword, $options: 'i' } },
-          { 'paymentMethod': { $regex: keyword, $options: 'i' } }
-        ]
-      }
-    }
-
-    delete filter.current
-    delete filter.pageSize
-
-    const offset = (+currentPage - 1) * +limit
-    const defaultLimit = +limit ? +limit : 10
-
-    // Đếm tổng số đơn hàng trong database
-    const allOrdersCount = await OrderModel.countDocuments({})
-    console.log('Total orders in database:', allOrdersCount)
-
-    // Hiển thị tất cả các đơn hàng trong database
-    const allOrders = await OrderModel.find({}).lean().exec()
-    console.log('All orders in database:', allOrders.map(order => ({
-      id: order._id,
-      status: order.status,
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus
-    })))
-
-    const totalItems = await OrderModel.countDocuments(filter)
-    console.log('Orders matching filter:', totalItems)
-
-    const totalPages = Math.ceil(totalItems / defaultLimit)
-
-    // Lấy danh sách đơn hàng
-    const results = await OrderModel.find(filter)
-      .skip(offset)
-      .limit(defaultLimit)
-      .sort(sort as any)
-      .populate('userId', 'fullName name email phone')
-      .populate('addressId', 'province district ward address')
-      .populate('discountId', 'name value type startDate endDate')
-      .lean()
-      .exec()
-
-    console.log('Orders found after query:', results.length)
-
-    // Lấy thêm thông tin các sản phẩm trong đơn hàng
-    const ordersWithItems = await Promise.all(
-      results.map(async (order) => {
-        const items = await OrderItemModel.find({ orderId: order._id })
-          .populate('productId')
-          .populate('variantId')
-          .lean()
-          .exec()
-        console.log(`Order ${order._id} has ${items.length} items`)
-        return { ...order, items }
-      })
-    )
-
-    return {
-      meta: {
-        current: currentPage,
-        pageSize: defaultLimit,
-        pages: totalPages,
-        total: totalItems
-      },
-      results: ordersWithItems
-    }
-  } catch (error) {
-    console.error('Error fetching all orders for admin:', error)
-    throw error
-  }
-}
 
 export const orderService = {
   handleCreateOrder,
@@ -580,6 +497,5 @@ export const orderService = {
   handleFetchAllOrders,
   handleUpdateStatusOrder,
   handleFetchItemOfOrder,
-  handleCancelOrder,
-  handleFetchAllOrdersForAdmin
+  handleCancelOrder
 }
