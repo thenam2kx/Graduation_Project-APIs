@@ -43,7 +43,7 @@ const fetchAllOrders = async (req: Request, res: Response, next: NextFunction) =
       sendApiResponse(res, StatusCodes.OK, {
         statusCode: StatusCodes.OK,
         message: 'Lấy danh sách đơn hàng thành công',
-        data: result // ⬅️ đã bao gồm items
+        data: result
       })
     } else {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Có lỗi xảy ra trong quá trình lấy danh sách đơn hàng')
@@ -146,25 +146,42 @@ const cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
   }
 }
 
-// API mới để lấy tất cả đơn hàng cho Admin
+// API mới để lấy tất cả đơn hàng cho Admin với phân trang
 const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('Fetching all orders for admin, query:', req.query)
-
-    // Trả về tất cả đơn hàng mà không cần filter, sắp xếp theo thời gian tạo mới nhất trước
-    const allOrders = await OrderModel.find({})
-      .sort({ createdAt: -1 }) // Sắp xếp giảm dần theo thời gian tạo
+    
+    const { page = 1, limit = 10, sort = '-createdAt', status } = req.query
+    
+    const filter: any = {}
+    if (status) filter.status = status
+    
+    const currentPage = Number(page)
+    const pageSize = Number(limit)
+    const offset = (currentPage - 1) * pageSize
+    
+    // Đếm tổng số đơn hàng
+    const totalItems = await OrderModel.countDocuments(filter)
+    const totalPages = Math.ceil(totalItems / pageSize)
+    
+    console.log(`Pagination: page=${currentPage}, limit=${pageSize}, total=${totalItems}`)
+    
+    // Lấy đơn hàng với phân trang
+    const orders = await OrderModel.find(filter)
+      .sort(sort as string)
+      .skip(offset)
+      .limit(pageSize)
       .populate('userId', 'fullName name email phone')
       .populate('addressId', 'province district ward address')
       .populate('discountId', 'name value type startDate endDate')
       .lean()
       .exec()
 
-    console.log('All orders found:', allOrders.length)
+    console.log(`Orders found: ${orders.length}/${totalItems}`)
 
     // Lấy thêm thông tin các sản phẩm trong đơn hàng
     const ordersWithItems = await Promise.all(
-      allOrders.map(async (order) => {
+      orders.map(async (order) => {
         const items = await OrderItemModel.find({ orderId: order._id })
           .populate('productId')
           .populate('variantId')
@@ -176,17 +193,17 @@ const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFun
 
     const result = {
       meta: {
-        current: 1,
-        pageSize: 100,
-        pages: 1,
-        total: allOrders.length
+        current: currentPage,
+        pageSize: pageSize,
+        pages: totalPages,
+        total: totalItems
       },
       results: ordersWithItems
     }
 
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
-      message: 'Lấy danh sách tất cả đơn hàng thành công',
+      message: 'Lấy danh sách đơn hàng thành công',
       data: result
     })
   } catch (error) {
