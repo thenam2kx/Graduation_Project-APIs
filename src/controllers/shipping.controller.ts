@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import sendApiResponse from '~/utils/response.message'
 import OrderModel from '~/models/order.model'
+import { shippingService } from '~/services/shipping.service'
 
 /**
  * Update shipping status
@@ -98,6 +99,57 @@ const updateShippingStatus = async (req: Request, res: Response, next: NextFunct
   }
 }
 
+/**
+ * Calculate shipping fee
+ */
+const calculateShippingFee = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { fromAddress, toAddress, weight, shippingMethod } = req.body
+
+    const result = await shippingService.handleCalculateShippingFee({
+      fromAddress,
+      toAddress,
+      weight,
+      shippingMethod
+    })
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Tính phí vận chuyển thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tính phí vận chuyển'
+    const statusCode = err.statusCode ?? StatusCodes.INTERNAL_SERVER_ERROR
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+/**
+ * Get shipping methods
+ */
+const getShippingMethods = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await shippingService.handleGetShippingMethods()
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách phương thức vận chuyển thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lấy danh sách phương thức vận chuyển'
+    const statusCode = err.statusCode ?? StatusCodes.INTERNAL_SERVER_ERROR
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
 export const shippingController = {
-  updateShippingStatus
+  updateShippingStatus,
+  calculateShippingFee,
+  getShippingMethods
 }
