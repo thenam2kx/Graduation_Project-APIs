@@ -128,15 +128,22 @@ const handleCreateProduct = async (productData: IProduct) => {
 const handleFetchAllProduct = async ({
   currentPage,
   limit,
-  qs
+  qs,
+  categoryId
 }: {
   currentPage: number
   limit: number
   qs: string
+  categoryId?: string
 }) => {
   const { filter, sort } = aqp(qs)
   delete filter.current
   delete filter.pageSize
+  
+  // Thêm filter theo categoryId nếu có
+  if (categoryId) {
+    filter.categoryId = categoryId
+  }
 
   const offset = (+currentPage - 1) * +limit
   const defaultLimit = +limit || 10

@@ -16,7 +16,7 @@ const calculateShippingFee = Joi.object({
   weight: Joi.number().required().min(0.1).max(50).messages({
     'number.base': 'Trọng lượng phải là số!',
     'number.min': 'Trọng lượng phải lớn hơn 0.1kg!',
-    'number.max': 'Trọng lượng không được vượt quá 50kg!',
+    'number.max': 'Trọng lượng không được vượt quá 50 ký tự!',
     'any.required': 'Trọng lượng là bắt buộc!'
   }),
   shippingMethod: Joi.string().required().valid('standard', 'express', 'same_day').messages({
@@ -26,6 +26,21 @@ const calculateShippingFee = Joi.object({
   })
 })
 
+const updateShippingStatus = Joi.object({
+  statusCode: Joi.string().required().valid(
+    'ready_to_pick', 'picking', 'picked', 'delivering', 'delivered',
+    'delivery_fail', 'waiting_to_return', 'return', 'returned', 'cancel', 'exception'
+  ).messages({
+    'string.empty': 'Mã trạng thái không được để trống!',
+    'any.only': 'Mã trạng thái không hợp lệ!',
+    'any.required': 'Mã trạng thái là bắt buộc!'
+  }),
+  statusName: Joi.string().optional(),
+  description: Joi.string().optional(),
+  updatedAt: Joi.date().optional()
+})
+
 export const shippingValidation = {
-  calculateShippingFee
+  calculateShippingFee,
+  updateShippingStatus
 }

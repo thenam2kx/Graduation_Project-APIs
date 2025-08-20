@@ -123,6 +123,11 @@ const handleReplyContact = async (contactId: string, replyMessage: string) => {
     }
   )
 
+  await ContactModel.updateOne(
+    { _id: contactId },
+    { replyMessage, repliedAt: new Date() }
+  )
+
   return { success: true }
 }
 
