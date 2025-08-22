@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import slugify from 'slugify'
 
 export interface IAttribute extends SoftDeleteDocument {
   name: string
@@ -12,8 +13,8 @@ export interface IAttribute extends SoftDeleteDocument {
 
 const AttributeSchema: Schema<IAttribute> = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, trim: true }
+    name: { type: String, required: true, trim: true, unique: true },
+    slug: { type: String, trim: true, unique: true }
   },
   {
     timestamps: true,
@@ -21,6 +22,14 @@ const AttributeSchema: Schema<IAttribute> = new mongoose.Schema(
     strict: true
   }
 )
+
+// Auto generate slug from name
+AttributeSchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
+})
 
 AttributeSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',

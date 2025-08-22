@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import slugify from 'slugify'
 
 export interface ICategory extends SoftDeleteDocument {
   name: string
@@ -18,9 +19,9 @@ export interface ICategory extends SoftDeleteDocument {
 }
 const CategorySchema: Schema<ICategory> = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     icon: { type: String, required: false },
     isPublic: { type: Boolean, default: false },
     createdBy: {
@@ -42,6 +43,14 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
     strict: true
   }
 )
+
+// Auto generate slug from name
+CategorySchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
+})
 
 // Override all methods
 CategorySchema.plugin(MongooseDelete, {

@@ -6,19 +6,15 @@ import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 
 const handleCreateBrand = async (payload: IBrand) => {
-  await isExistObject(BrandModel, { name: payload.name }, { checkExisted: true, errorMessage: `Tên brand ${payload.name} đã tồn tại.` });
-
-  let slug = payload.slug || createSlug(payload.name)
-  const baseSlug = slug
-
-  while (await BrandModel.exists({ slug })) {
-    slug = `${baseSlug}`
+  // Kiểm tra trùng tên
+  const existedName = await BrandModel.findOne({ name: payload.name })
+  if (existedName) {
+    throw new ApiError(StatusCodes.CONFLICT, `Tên thương hiệu ${payload.name} đã tồn tại.`)
   }
 
-  const newBrand = await BrandModel.create({
-    ...payload,
-    slug
-  })
+  // Nếu không có slug hoặc slug rỗng, để pre-save hook tự động tạo
+  const createData = payload.slug ? payload : { ...payload, slug: undefined }
+  const newBrand = await BrandModel.create(createData)
 
   return newBrand.toObject()
 }
@@ -29,9 +25,9 @@ const handleFetchAllBrand = async ({ currentPage, limit, qs }: { currentPage: nu
   if (qs && typeof qs === 'string' && qs.trim() !== '') {
     filter.$or = [{ name: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }]
   } else {
-    const aqpResult = aqp(qs)
-    filter = aqpResult.filter
-    sort = aqpResult.sort
+    const aqpResult = aqp(qs || '')
+    filter = aqpResult.filter || {}
+    sort = aqpResult.sort || {}
     population = aqpResult.population
     delete filter.current
     delete filter.pageSize
@@ -45,7 +41,7 @@ const handleFetchAllBrand = async ({ currentPage, limit, qs }: { currentPage: nu
   const results = await BrandModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
     .populate(population)
     .lean()
     .exec()
@@ -74,17 +70,11 @@ const handleUpdateBrand = async (brandId: string, data: Partial<IBrand>) => {
   if (data.name) {
     const existed = await BrandModel.findOne({ name: data.name, _id: { $ne: brandId } })
     if (existed) {
-      throw new ApiError(StatusCodes.CONFLICT, `Tên brand ${data.name} đã tồn tại.`)
+      throw new ApiError(StatusCodes.CONFLICT, `Tên thương hiệu ${data.name} đã tồn tại.`)
     }
-
-    let slug = createSlug(data.name)
-    const baseSlug = slug
-
-    while (await BrandModel.exists({ slug, _id: { $ne: brandId } })) {
-      slug = `${baseSlug}`
-    }
-
-    data.slug = slug
+    
+    // Tự động tạo slug mới từ name
+    data.slug = createSlug(data.name)
   }
 
   const brand = await BrandModel.findByIdAndUpdate(brandId, data, {

@@ -1,9 +1,10 @@
 import mongoose, { Schema } from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import slugify from 'slugify'
 
 export interface ICateblog extends SoftDeleteDocument {
-  name?: string
-  slug: string
+  name: string
+  slug?: string
   createdBy?: {
     _id: string
     email: string
@@ -16,8 +17,8 @@ export interface ICateblog extends SoftDeleteDocument {
 
 const CateblogSchema: Schema<ICateblog> = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    slug: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     createdBy: {
       _id: { type: String },
       email: { type: String }
@@ -37,6 +38,14 @@ const CateblogSchema: Schema<ICateblog> = new mongoose.Schema(
     strict: true
   }
 )
+
+// Auto generate slug from name
+CateblogSchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
+})
 
 // Override all methods
 CateblogSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })

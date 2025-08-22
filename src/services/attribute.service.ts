@@ -3,10 +3,18 @@ import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import AttributeModel, { IAttribute } from '~/models/attribute.model'
-import { isValidMongoId } from '~/utils/utils'
+import { isValidMongoId, createSlug } from '~/utils/utils'
 
 const handleCreateAttribute = async (data: IAttribute) => {
-  const result = await AttributeModel.create(data)
+  // Kiểm tra trùng tên
+  const existedName = await AttributeModel.findOne({ name: data.name })
+  if (existedName) {
+    throw new ApiError(StatusCodes.CONFLICT, `Tên thuộc tính ${data.name} đã tồn tại.`)
+  }
+  
+  // Bỏ slug từ client, để pre-save hook tự động tạo
+  const { slug, ...createData } = data
+  const result = await AttributeModel.create(createData)
   return result.toObject()
 }
 
@@ -19,9 +27,18 @@ const handleFetchAllAttributes = async ({
   limit: number
   qs: string
 }) => {
-  const { filter, sort } = aqp(qs)
-  delete filter.current
-  delete filter.pageSize
+  let filter: any = {}
+  let sort: any = {}
+  
+  if (qs && typeof qs === 'string' && qs.trim() !== '') {
+    filter.$or = [{ name: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }]
+  } else {
+    const aqpResult = aqp(qs || '')
+    filter = aqpResult.filter || {}
+    sort = aqpResult.sort || {}
+    delete filter.current
+    delete filter.pageSize
+  }
 
   const offset = (currentPage - 1) * limit
   const defaultLimit = limit || 10
@@ -32,7 +49,7 @@ const handleFetchAllAttributes = async ({
   const results = await AttributeModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
     .lean()
     .exec()
 
@@ -61,6 +78,16 @@ const handleFetchInfoAttribute = async (attributeId: string) => {
 
 const handleUpdateAttribute = async (attributeId: string, data: Partial<IAttribute>) => {
   isValidMongoId(attributeId)
+
+  if (data.name) {
+    const existed = await AttributeModel.findOne({ name: data.name, _id: { $ne: attributeId } })
+    if (existed) {
+      throw new ApiError(StatusCodes.CONFLICT, `Tên thuộc tính ${data.name} đã tồn tại.`)
+    }
+    
+    // Tự động tạo slug mới từ name
+    data.slug = createSlug(data.name)
+  }
 
   const updated = await AttributeModel.updateOne({ _id: attributeId }, data)
   if (updated.modifiedCount === 0) {

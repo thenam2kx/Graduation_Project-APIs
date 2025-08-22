@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
 import { Schema } from 'mongoose'
+import slugify from 'slugify'
 export interface IBrand extends SoftDeleteDocument {
   name: string
   slug: string
@@ -17,8 +18,8 @@ export interface IBrand extends SoftDeleteDocument {
 }
 const BrandSchema: Schema<IBrand> = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
+    name: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     avatar: { type: String },
     isPublic: { type: Boolean, default: false },
     createdBy: {
@@ -40,6 +41,14 @@ const BrandSchema: Schema<IBrand> = new mongoose.Schema(
     strict: true
   }
 )
+// Auto generate slug from name
+BrandSchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
+})
+
 BrandSchema.plugin(MongooseDelete, {
   overrideMethods: 'all',
   deletedBy: true,

@@ -1,21 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { isExistObject, isValidMongoId } from '~/utils/utils'
+import { isExistObject, isValidMongoId, createSlug } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import CateblogModel, { ICateblog } from '~/models/blogcategory.model'
 
 const handleCreateCateblog = async (data: ICateblog) => {
-  await isExistObject(
-    CateblogModel,
-    { slug: data.slug },
-    {
-      checkExisted: true,
-      errorMessage: 'Bài viết đã tồn tại danh mục này!'
-    }
-  )
+  // Kiểm tra trùng tên
+  const existedName = await CateblogModel.findOne({ name: data.name })
+  if (existedName) {
+    throw new ApiError(StatusCodes.CONFLICT, `Tên danh mục bài viết ${data.name} đã tồn tại.`)
+  }
 
-  const result = await CateblogModel.create(data)
+  // Bỏ slug từ client, để pre-save hook tự động tạo
+  const { slug, ...createData } = data
+  const result = await CateblogModel.create(createData)
 
   return result.toObject()
 }
@@ -29,7 +28,10 @@ const handleFetchAllCateblog = async ({
   limit: number
   qs: string
 }) => {
-  const { filter, sort, population } = aqp(qs)
+  const aqpResult = aqp(qs || '')
+  const filter = aqpResult.filter || {}
+  const sort = aqpResult.sort || {}
+  const population = aqpResult.population
   delete filter.current
   delete filter.pageSize
 
@@ -41,7 +43,7 @@ const handleFetchAllCateblog = async ({
   const results = await CateblogModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
     .populate(population)
     .lean()
     .exec()
@@ -68,9 +70,20 @@ const handleFetchInfoCateblog = async (cateblogId: string) => {
 
 const handleUpdateCateblog = async (cateblogId: string, data: Partial<ICateblog>) => {
   isValidMongoId(cateblogId)
+
+  if (data.name) {
+    const existed = await CateblogModel.findOne({ name: data.name, _id: { $ne: cateblogId } })
+    if (existed) {
+      throw new ApiError(StatusCodes.CONFLICT, `Tên danh mục bài viết ${data.name} đã tồn tại.`)
+    }
+    
+    // Tự động tạo slug mới từ name
+    data.slug = createSlug(data.name)
+  }
+
   const cateblog = await CateblogModel.updateOne({ _id: cateblogId }, { ...data })
   if (!cateblog) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Bài viết không tồn tại danh mục này!')
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục bài viết không tồn tại!')
   }
   return cateblog
 }

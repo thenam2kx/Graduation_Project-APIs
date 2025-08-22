@@ -22,9 +22,9 @@ const handleFetchAllBlog = async ({ currentPage, limit, qs }: { currentPage: num
     filter.$or = [{ title: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }]
   } else {
     // Nếu không có từ khóa thì parse filter như cũ
-    const aqpResult = aqp(qs)
-    filter = aqpResult.filter
-    sort = aqpResult.sort
+    const aqpResult = aqp(qs || '')
+    filter = aqpResult.filter || {}
+    sort = aqpResult.sort || {}
     population = aqpResult.population
     delete filter.current
     delete filter.pageSize
@@ -38,7 +38,7 @@ const handleFetchAllBlog = async ({ currentPage, limit, qs }: { currentPage: num
   const results = await BlogModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
     .populate(population)
     .lean()
     .exec()
@@ -87,7 +87,7 @@ const handleFetchBlogByCategory = async ({
   const results = await BlogModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(Object.keys(sort).length > 0 ? sort : { createdAt: -1 })
     .populate(population)
     .lean()
     .exec()
