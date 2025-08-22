@@ -22,10 +22,7 @@ const createBrandValidation = async (req: Request, res: Response, next: NextFunc
     avatar: Joi.string().uri().optional().messages({
       'string.uri': 'Ảnh đại diện phải là URL hợp lệ'
     }),
-    isPublic: Joi.boolean().required().messages({
-      'any.required': 'Trạng thái là bắt buộc',
-      'boolean.base': 'Trạng thái phải là true hoặc false'
-    }),
+    isPublic: Joi.boolean().optional().default(true),
     categoryBrandId: objectIdSchema.label('categoryBrandId').optional()
   })
   try {

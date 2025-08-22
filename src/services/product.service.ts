@@ -129,24 +129,29 @@ const handleFetchAllProduct = async ({
   currentPage,
   limit,
   qs,
-  categoryId
+  categoryId,
+  brandId
 }: {
   currentPage: number
   limit: number
   qs: string
   categoryId?: string
+  brandId?: string
 }) => {
   const { filter, sort } = aqp(qs)
   delete filter.current
   delete filter.pageSize
   
-  // Thêm filter theo categoryId và chỉ lấy sản phẩm chưa xóa
+  // Thêm filter theo categoryId, brandId và chỉ lấy sản phẩm chưa xóa
   const baseFilter = {
     ...filter,
     $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
   }
   if (categoryId) {
     baseFilter.categoryId = categoryId
+  }
+  if (brandId) {
+    baseFilter.brandId = brandId
   }
   const finalFilter = baseFilter
 
@@ -370,14 +375,20 @@ const handleDeleteProduct = async (productId: string) => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
     }
 
-    // 3. Soft delete sản phẩm
+    // 3. Kiểm tra sản phẩm có trong đơn hàng hay không
+    const orderItemExists = await OrderItemModel.findOne({ productId }).session(session)
+    if (orderItemExists) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Sản phẩm đã tồn tại trong đơn hàng, không thể xóa!')
+    }
+
+    // 4. Soft delete sản phẩm
     await ProductModel.findByIdAndUpdate(
       productId,
       { isDeleted: true, deletedAt: new Date() },
       { session }
     )
 
-    // 6. Commit transaction
+    // 5. Commit transaction
     await session.commitTransaction()
     session.endSession()
 

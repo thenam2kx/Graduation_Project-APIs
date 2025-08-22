@@ -118,7 +118,9 @@ const fetchAllProductValidation = async (req: Request, res: Response, next: Next
   const fetchAllProductValidationSchema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
-    qs: Joi.string().optional().allow('')
+    qs: Joi.string().optional().allow(''),
+    categoryId: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/),
+    brandId: Joi.string().optional().pattern(/^[0-9a-fA-F]{24}$/)
   }).unknown(true)
   try {
     await fetchAllProductValidationSchema.validateAsync(req.query, { abortEarly: false })

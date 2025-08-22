@@ -266,8 +266,18 @@ const handleFetchAllOrders = async (
 
   // 4. Lấy tất cả OrderItem tương ứng
   const orderItems = await OrderItemModel.find({ orderId: { $in: orderIds } })
-    .populate('productId', 'name image')
-    .populate('variantId', 'sku color size')
+    .populate('productId', 'name image capacity')
+    .populate({
+      path: 'variantId',
+      select: 'sku color size',
+      populate: {
+        path: 'variant_attributes',
+        populate: {
+          path: 'attributeId',
+          select: 'name slug'
+        }
+      }
+    })
     .lean()
 
   // 5. Gộp items vào từng đơn

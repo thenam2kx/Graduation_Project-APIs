@@ -184,7 +184,16 @@ const fetchAllOrdersForAdmin = async (req: Request, res: Response, next: NextFun
       orders.map(async (order) => {
         const items = await OrderItemModel.find({ orderId: order._id })
           .populate('productId')
-          .populate('variantId')
+          .populate({
+            path: 'variantId',
+            populate: {
+              path: 'variant_attributes',
+              populate: {
+                path: 'attributeId',
+                select: 'name slug'
+              }
+            }
+          })
           .lean()
           .exec()
         return { ...order, items }

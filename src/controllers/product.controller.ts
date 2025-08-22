@@ -34,7 +34,7 @@ const createProduct = async (req: Request, res: Response, next: NextFunction) =>
 
 const fetchAllProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { current, pageSize, qs, categoryId } = req.query
+    const { current, pageSize, qs, categoryId, brandId } = req.query
     const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
     const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
     const parsedQs =
@@ -46,11 +46,13 @@ const fetchAllProducts = async (req: Request, res: Response, next: NextFunction)
             ? JSON.stringify(qs)
             : ''
     const parsedCategoryId = typeof categoryId === 'string' ? categoryId : undefined
+    const parsedBrandId = typeof brandId === 'string' ? brandId : undefined
     const result = await productService.handleFetchAllProduct({
       currentPage: parsedCurrentPage,
       limit: parsedLimit,
       qs: parsedQs,
-      categoryId: parsedCategoryId
+      categoryId: parsedCategoryId,
+      brandId: parsedBrandId
     })
     if (!result) {
       sendApiResponse(res, StatusCodes.BAD_REQUEST, {
