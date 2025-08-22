@@ -7,6 +7,15 @@ Router.route('/')
   .get(brandValidation.fetchAllBrandValidation, brandController.fetchAllBrand)
 Router.route('/all')
   .get(brandController.getAllBrands)
+Router.route('/trash')
+  .get(brandValidation.fetchAllBrandValidation, brandController.fetchTrashBrands)
+
+Router.route('/restore/:brandID')
+  .patch(brandValidation.fetchBrandByIdValidation, brandController.restoreBrand)
+
+Router.route('/force-delete/:brandID')
+  .delete(brandValidation.deleteBrandValidation, brandController.forceDeleteBrand)
+
 Router.route('/:brandID')
   .get(brandValidation.fetchBrandByIdValidation, brandController.fetchBrandById)
   .patch(brandValidation.updateBrandValidation, brandController.updateBrand)
