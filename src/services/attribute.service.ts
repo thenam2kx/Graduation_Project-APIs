@@ -100,7 +100,7 @@ const handleUpdateAttribute = async (attributeId: string, data: Partial<IAttribu
 const handleDeleteAttribute = async (attributeId: string): Promise<any> => {
   isValidMongoId(attributeId)
 
-  const deleted = await AttributeModel.deleteById(attributeId)
+  const deleted = await AttributeModel.findByIdAndDelete(attributeId)
   if (!deleted) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy thuộc tính để xóa!')
   }

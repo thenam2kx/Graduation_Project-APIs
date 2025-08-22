@@ -1,14 +1,11 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Document } from 'mongoose'
 import slugify from 'slugify'
 
-export interface IAttribute extends SoftDeleteDocument {
+export interface IAttribute extends Document {
   name: string
   slug: string
   createdAt?: Date
   updatedAt?: Date
-  deletedAt?: Date
-  deleted?: boolean
 }
 
 const AttributeSchema: Schema<IAttribute> = new mongoose.Schema(
@@ -31,12 +28,6 @@ AttributeSchema.pre('save', function(next) {
   next()
 })
 
-AttributeSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedAt: true,
-  deletedBy: false
-})
-
-const AttributeModel = mongoose.model<IAttribute, SoftDeleteModel<IAttribute>>('attributes', AttributeSchema)
+const AttributeModel = mongoose.model<IAttribute>('attributes', AttributeSchema)
 
 export default AttributeModel

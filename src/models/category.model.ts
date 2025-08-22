@@ -1,8 +1,7 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Document } from 'mongoose'
 import slugify from 'slugify'
 
-export interface ICategory extends SoftDeleteDocument {
+export interface ICategory extends Document {
   name: string
   description: string
   slug: string
@@ -32,10 +31,7 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+
   },
   {
     timestamps: true,
@@ -52,12 +48,5 @@ CategorySchema.pre('save', function(next) {
   next()
 })
 
-// Override all methods
-CategorySchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
-})
-
-const CategoryModel = mongoose.model<ICategory, SoftDeleteModel<ICategory>>('Category', CategorySchema)
+const CategoryModel = mongoose.model<ICategory>('Category', CategorySchema)
 export default CategoryModel

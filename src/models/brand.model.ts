@@ -1,8 +1,7 @@
-import mongoose from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Document } from 'mongoose'
 import { Schema } from 'mongoose'
 import slugify from 'slugify'
-export interface IBrand extends SoftDeleteDocument {
+export interface IBrand extends Document {
   name: string
   slug: string
   avatar?: string
@@ -30,10 +29,7 @@ const BrandSchema: Schema<IBrand> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+
   },
   {
     timestamps: true,
@@ -49,10 +45,5 @@ BrandSchema.pre('save', function(next) {
   next()
 })
 
-BrandSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
-})
-const BrandModel = mongoose.model<IBrand, SoftDeleteModel<IBrand>>('Brand', BrandSchema)
+const BrandModel = mongoose.model<IBrand>('Brand', BrandSchema)
 export default BrandModel

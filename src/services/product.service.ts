@@ -160,16 +160,13 @@ const handleFetchAllProduct = async ({
     .populate({
       path: 'variants',
       model: 'ProductVariant',
-      match: { deleted: false },
       populate: {
         path: 'variant_attributes',
         model: 'VariantAttribute',
         select: 'value',
-        match: { deleted: false },
         populate: {
           path: 'attributeId',
           model: 'attributes',
-          match: { deleted: false },
           select: 'name slug'
         }
       }
@@ -211,16 +208,13 @@ const handleFetchInfoProduct = async (productId: string) => {
     .populate({
       path: 'variants',
       model: 'ProductVariant',
-      match: { deleted: false },
       populate: {
         path: 'variant_attributes',
         model: 'VariantAttribute',
         select: 'value',
-        match: { deleted: false },
         populate: {
           path: 'attributeId',
           model: 'attributes',
-          match: { deleted: false },
           select: 'name slug'
         }
       }
@@ -369,28 +363,33 @@ const handleDeleteProduct = async (productId: string) => {
     }
 
     // 3. Kiểm tra xem sản phẩm đã có trong đơn hàng nào chưa
-    const orderItemExists = await OrderItemModel.findOne({ productId: product._id, deleted: false }).session(session)
+    const orderItemExists = await OrderItemModel.findOne({ productId: product._id }).session(session)
     
     if (orderItemExists) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST, 
-        'Không thể xóa sản phẩm này vì đã có trong đơn hàng. Vui lòng ngừng kinh doanh sản phẩm thay vì xóa.'
+        'Không thể xóa sản phẩm này vì đã có trong đơn hàng.'
       )
     }
 
-    // 4. Soft-delete sản phẩm chính
-    //    plugin mongoose-delete cung cấp method `delete()` trên document
-    await product.delete({ session })
+    // 4. Xóa tất cả variant attributes liên quan
+    const variants = await ProductVariantModel.find({ productId: product._id }).session(session)
+    const variantIds = variants.map(v => v._id)
+    if (variantIds.length > 0) {
+      await VariantAttributeModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
+    }
 
-    // 5. Soft-delete tất cả variant liên quan
-    //    Sử dụng Model.deleteMany hoặc statics do plugin cung cấp
-    await ProductVariantModel.delete({ productId: product._id }).session(session)
+    // 5. Xóa tất cả variant liên quan
+    await ProductVariantModel.deleteMany({ productId: product._id }).session(session)
+
+    // 6. Xóa sản phẩm chính
+    await ProductModel.findByIdAndDelete(productId).session(session)
 
     // 6. Commit transaction
     await session.commitTransaction()
     session.endSession()
 
-    return { message: 'Xóa sản phẩm thành công (soft-delete)' }
+    return { message: 'Xóa sản phẩm thành công' }
   } catch (err) {
     // Rollback nếu có lỗi
     await session.abortTransaction()

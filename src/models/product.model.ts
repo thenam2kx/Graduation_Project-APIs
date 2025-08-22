@@ -1,7 +1,6 @@
-import mongoose, { Schema, Types } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Types, Document } from 'mongoose'
 
-export interface IProduct extends SoftDeleteDocument {
+export interface IProduct extends Document {
   name: string
   description?: string
   slug: string
@@ -47,10 +46,7 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+
   },
   {
     timestamps: true,
@@ -68,12 +64,6 @@ ProductSchema.virtual('variants', {
 ProductSchema.set('toObject', { virtuals: true })
 ProductSchema.set('toJSON', { virtuals: true })
 
-ProductSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedAt: true,
-  deletedBy: false
-})
-
-const ProductModel = mongoose.model<IProduct, SoftDeleteModel<IProduct>>('products', ProductSchema)
+const ProductModel = mongoose.model<IProduct>('products', ProductSchema)
 
 export default ProductModel
