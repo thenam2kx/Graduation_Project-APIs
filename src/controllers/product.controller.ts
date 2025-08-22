@@ -158,10 +158,69 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
   }
 }
 
+const fetchTrashProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { current, pageSize, qs } = req.query
+    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
+    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const parsedQs = typeof qs === 'string' ? qs : Array.isArray(qs) ? qs.join(',') : ''
+
+    const result = await productService.handleFetchTrashProducts({
+      currentPage: parsedCurrentPage,
+      limit: parsedLimit,
+      qs: parsedQs
+    })
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách thùng rác thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const restoreProduct = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { productId } = req.params
+    const result = await productService.handleRestoreProduct(productId)
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Khôi phục sản phẩm thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const forceDeleteProduct = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { productId } = req.params
+    const result = await productService.handleForceDeleteProduct(productId)
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Xóa vĩnh viễn sản phẩm thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
 export const productController = {
   createProduct,
   fetchAllProducts,
   fetchInfoProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  fetchTrashProducts,
+  restoreProduct,
+  forceDeleteProduct
 }

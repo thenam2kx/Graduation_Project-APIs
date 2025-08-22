@@ -28,12 +28,29 @@ const handleFetchAllCateblog = async ({
   limit: number
   qs: string
 }) => {
-  const aqpResult = aqp(qs || '')
-  const filter = aqpResult.filter || {}
-  const sort = aqpResult.sort || {}
-  const population = aqpResult.population
-  delete filter.current
-  delete filter.pageSize
+  let filter: any = {}
+  let sort: any = {}
+  let population: any = undefined
+
+  if (qs && typeof qs === 'string' && qs.trim() !== '') {
+    filter = {
+      $and: [
+        { $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }] },
+        { $or: [{ name: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }] }
+      ]
+    }
+  } else {
+    const aqpResult = aqp(qs || '')
+    const baseFilter = aqpResult.filter || {}
+    filter = {
+      ...baseFilter,
+      $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
+    }
+    sort = aqpResult.sort || {}
+    population = aqpResult.population
+    delete filter.current
+    delete filter.pageSize
+  }
 
   const offset = (+currentPage - 1) * +limit
   const defaultLimit = +limit ? +limit : 10
@@ -61,9 +78,12 @@ const handleFetchAllCateblog = async ({
 
 const handleFetchInfoCateblog = async (cateblogId: string) => {
   isValidMongoId(cateblogId)
-  const cateblog = await CateblogModel.findById(cateblogId).lean().exec()
+  const cateblog = await CateblogModel.findOne({ 
+    _id: cateblogId, 
+    $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }] 
+  }).lean().exec()
   if (!cateblog) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Bài viết không tồn tại danh mục này!')
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục bài viết không tồn tại!')
   }
   return cateblog
 }
@@ -90,11 +110,81 @@ const handleUpdateCateblog = async (cateblogId: string, data: Partial<ICateblog>
 
 const handleDeleteCateblog = async (cateblogId: string): Promise<any> => {
   isValidMongoId(cateblogId)
-  const cateblog = await CateblogModel.deleteById(cateblogId)
+  const cateblog = await CateblogModel.findByIdAndUpdate(
+    cateblogId,
+    { isDeleted: true, deletedAt: new Date() },
+    { new: true }
+  )
   if (!cateblog) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Bài viết không tồn tại danh mục này!')
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục bài viết không tồn tại!')
   }
   return cateblog
+}
+
+const handleFetchTrashCateblogs = async ({ currentPage, limit, qs }: { currentPage: number; limit: number; qs: string }) => {
+  let filter: any = { isDeleted: true }
+  let sort: any = {}
+  
+  if (qs && typeof qs === 'string' && qs.trim() !== '') {
+    filter = {
+      $and: [
+        { isDeleted: true },
+        { $or: [{ name: { $regex: qs, $options: 'i' } }, { slug: { $regex: qs, $options: 'i' } }] }
+      ]
+    }
+  } else {
+    const aqpResult = aqp(qs || '')
+    const baseFilter = aqpResult.filter || {}
+    filter = { ...baseFilter, isDeleted: true }
+    sort = aqpResult.sort || {}
+    delete filter.current
+    delete filter.pageSize
+  }
+
+  const offset = (currentPage - 1) * limit
+  const defaultLimit = limit || 10
+
+  const totalItems = await CateblogModel.countDocuments(filter)
+  const totalPages = Math.ceil(totalItems / defaultLimit)
+
+  const results = await CateblogModel.find(filter)
+    .skip(offset)
+    .limit(defaultLimit)
+    .sort(Object.keys(sort).length > 0 ? sort : { deletedAt: -1 })
+    .lean()
+    .exec()
+
+  return {
+    meta: {
+      current: currentPage,
+      pageSize: defaultLimit,
+      pages: totalPages,
+      total: totalItems
+    },
+    results
+  }
+}
+
+const handleRestoreCateblog = async (cateblogId: string): Promise<any> => {
+  isValidMongoId(cateblogId)
+  const restored = await CateblogModel.findByIdAndUpdate(
+    cateblogId,
+    { isDeleted: false, $unset: { deletedAt: 1 } },
+    { new: true }
+  )
+  if (!restored) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy danh mục bài viết để khôi phục!')
+  }
+  return restored
+}
+
+const handleForceDeleteCateblog = async (cateblogId: string): Promise<any> => {
+  isValidMongoId(cateblogId)
+  const deleted = await CateblogModel.findByIdAndDelete(cateblogId)
+  if (!deleted) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy danh mục bài viết để xóa!')
+  }
+  return deleted
 }
 
 export const cateblogService = {
@@ -102,5 +192,8 @@ export const cateblogService = {
   handleFetchAllCateblog,
   handleFetchInfoCateblog,
   handleUpdateCateblog,
-  handleDeleteCateblog
+  handleDeleteCateblog,
+  handleFetchTrashCateblogs,
+  handleRestoreCateblog,
+  handleForceDeleteCateblog
 }

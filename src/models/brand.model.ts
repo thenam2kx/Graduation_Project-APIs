@@ -6,6 +6,8 @@ export interface IBrand extends Document {
   slug: string
   avatar?: string
   isPublic: boolean
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -29,6 +31,8 @@ const BrandSchema: Schema<IBrand> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
 
   },
   {

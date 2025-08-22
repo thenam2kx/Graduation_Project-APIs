@@ -7,6 +7,8 @@ export interface ICategory extends Document {
   slug: string
   icon: string
   isPublic: boolean
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -31,6 +33,8 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date }
 
   },
   {

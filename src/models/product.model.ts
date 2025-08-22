@@ -16,6 +16,8 @@ export interface IProduct extends Document {
   flashSaleQuantity?: number
   flashSaleStartDate?: Date
   flashSaleEndDate?: Date
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: { _id: string; email: string }
   updatedBy?: { _id: string; email: string }
 }
@@ -46,6 +48,8 @@ const ProductSchema: Schema<IProduct> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
 
   },
   {

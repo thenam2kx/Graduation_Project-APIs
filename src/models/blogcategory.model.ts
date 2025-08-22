@@ -1,10 +1,11 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Document } from 'mongoose'
 import slugify from 'slugify'
 
-export interface ICateblog extends SoftDeleteDocument {
+export interface ICateblog extends Document {
   name: string
   slug?: string
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -27,10 +28,8 @@ const CateblogSchema: Schema<ICateblog> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date }
   },
   {
     timestamps: true,
@@ -47,9 +46,6 @@ CateblogSchema.pre('save', function(next) {
   next()
 })
 
-// Override all methods
-CateblogSchema.plugin(MongooseDelete, { overrideMethods: 'all', deletedBy: true, deletedByType: String })
-
-const CateblogModel = mongoose.model<ICateblog, SoftDeleteModel<ICateblog>>('cateblogs', CateblogSchema)
+const CateblogModel = mongoose.model<ICateblog>('cateblogs', CateblogSchema)
 
 export default CateblogModel
