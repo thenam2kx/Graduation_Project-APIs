@@ -8,6 +8,8 @@ export interface IFlashSaleItem {
   productId: string
   variantId?: string
   discountPercent: number
+  limitQuantity: number
+  soldQuantity?: number
 }
 
 const handleCreateFlashSaleItem = async (data: IFlashSaleItem) => {
@@ -115,10 +117,132 @@ const handleDeleteFlashSaleItem = async (itemId: string) => {
   return { message: 'Xóa flash sale item thành công (soft-delete)' }
 }
 
+const handleCheckFlashSaleLimit = async (productId: string, variantId: string, requestedQuantity: number) => {
+  try {
+    const now = new Date()
+    
+    const flashSaleItem = await FlashSaleItemModel.findOne({
+      productId,
+      variantId,
+      deleted: false
+    }).populate({
+      path: 'flashSaleId',
+      match: {
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        isActive: true,
+        deleted: false
+      }
+    }).lean()
+    
+    if (!flashSaleItem || !flashSaleItem.flashSaleId) {
+      return { hasFlashSale: false, canPurchase: true, remainingQuantity: 0 }
+    }
+    
+    const remainingQuantity = flashSaleItem.limitQuantity - flashSaleItem.soldQuantity
+    const canPurchase = requestedQuantity <= remainingQuantity
+    
+    return {
+      hasFlashSale: true,
+      canPurchase,
+      remainingQuantity,
+      limitQuantity: flashSaleItem.limitQuantity,
+      soldQuantity: flashSaleItem.soldQuantity,
+      discountPercent: flashSaleItem.discountPercent
+    }
+  } catch (error) {
+    console.error('Error checking flash sale limit:', error)
+    return { hasFlashSale: false, canPurchase: true, remainingQuantity: 0 }
+  }
+}
+
+const handleFetchActiveFlashSaleItems = async () => {
+  const now = new Date()
+  
+  // Tìm flash sales đang hoạt động
+  const activeFlashSales = await FlashSaleItemModel.aggregate([
+    {
+      $lookup: {
+        from: 'flash_sales',
+        localField: 'flashSaleId',
+        foreignField: '_id',
+        as: 'flashSale'
+      }
+    },
+    {
+      $unwind: '$flashSale'
+    },
+    {
+      $match: {
+        'flashSale.isActive': true,
+        'flashSale.deleted': { $ne: true }
+      }
+    },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'productId',
+        foreignField: '_id',
+        as: 'productId'
+      }
+    },
+    {
+      $unwind: '$productId'
+    },
+    {
+      $lookup: {
+        from: 'product_variants',
+        localField: 'variantId',
+        foreignField: '_id',
+        as: 'variantId'
+      }
+    },
+    {
+      $unwind: {
+        path: '$variantId',
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $project: {
+        _id: 1,
+        flashSaleId: 1,
+        productId: {
+          _id: '$productId._id',
+          name: '$productId.name',
+          price: '$productId.price',
+          image: '$productId.image'
+        },
+        variantId: {
+          $cond: {
+            if: { $ne: ['$variantId', null] },
+            then: {
+              _id: '$variantId._id',
+              sku: '$variantId.sku',
+              price: '$variantId.price',
+              stock: '$variantId.stock'
+            },
+            else: null
+          }
+        },
+        discountPercent: 1,
+        limitQuantity: 1,
+        soldQuantity: 1,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    }
+  ])
+  
+  return activeFlashSales
+}
+
 export const flashSaleItemService = {
   handleCreateFlashSaleItem,
   handleFetchAllFlashSaleItems,
   handleFetchInfoFlashSaleItem,
   handleUpdateFlashSaleItem,
-  handleDeleteFlashSaleItem
+  handleDeleteFlashSaleItem,
+  handleFetchActiveFlashSaleItems,
+  handleCheckFlashSaleLimit
 }

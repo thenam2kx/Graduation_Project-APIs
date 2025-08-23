@@ -5,7 +5,7 @@ import configEnv from '~/config/env'
 
 const transporter = nodemailer.createTransport({
   host: configEnv.email.host,
-  port: Number(process.env.EMAIL_PORT),
+  port: 587,
   secure: false,
   auth: {
     user: configEnv.email.auth.user,
@@ -14,7 +14,15 @@ const transporter = nodemailer.createTransport({
 })
 
 export const sendEmail = async (to: string, subject: string, templateName: string, data: object) => {
-  const templatePath = path.join(__dirname, '../views', `${templateName}.ejs`)
+  // Try production path first, then fallback to development path
+  let templatePath = path.join(__dirname, '../views', `${templateName}.ejs`)
+  
+  // Check if running in production and template doesn't exist in dist
+  const fs = require('fs')
+  if (!fs.existsSync(templatePath)) {
+    // Fallback to source directory for development or if views not copied to dist
+    templatePath = path.join(process.cwd(), 'src/views', `${templateName}.ejs`)
+  }
 
   // Render EJS template thành HTML
   const html = await ejs.renderFile(templatePath, data)

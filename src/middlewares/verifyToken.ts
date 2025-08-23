@@ -80,4 +80,5 @@ const verifyAccessToken = async (req: Request, res: Response, next: NextFunction
   }
 }
 
+export { verifyAccessToken as verifyToken }
 export default verifyAccessToken

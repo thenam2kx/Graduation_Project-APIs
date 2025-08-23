@@ -106,6 +106,28 @@ const fetchInfoContactValidation = async (req: Request, res: Response, next: Nex
   }
 }
 
+// Soft delete liên hệ
+const softDeleteContactValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const paramsSchema = Joi.object({
+    contactId: objectIdSchema.label('contactId')
+  })
+  
+  const bodySchema = Joi.object({
+    deleted: Joi.boolean().required(),
+    deletedAt: Joi.string().isoDate().required()
+  })
+
+  try {
+    await paramsSchema.validateAsync(req.params, { abortEarly: false })
+    await bodySchema.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình xử lý'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 // Xoá liên hệ
 const deleteContactValidation = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
@@ -127,5 +149,6 @@ export const contactValidation = {
   fetchAllContactValidation,
   fetchInfoContactValidation,
   deleteContactValidation,
-  updateContactValidation
+  updateContactValidation,
+  softDeleteContactValidation
 }

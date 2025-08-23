@@ -38,7 +38,7 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   processing: 'Đang xử lý',
   shipped: 'Đã gửi hàng',
   delivered: 'Đã giao hàng',
-  completed: 'Đã hoàn thành',
+  completed: 'Đã hoàn thành',
   cancelled: 'Đã hủy',
   refunded: 'Đã hoàn tiền'
 }
@@ -136,7 +136,7 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       status: data.status ?? 'pending',
       shippingMethod: data.shippingMethod ?? 'standard',
       paymentMethod: data.paymentMethod ?? 'cash',
-      paymentStatus: data.paymentStatus ?? 'unpaid',
+      paymentStatus: data.paymentMethod === 'vnpay' ? 'paid' : 'unpaid', // Nếu thanh toán VNPAY thì đã thanh toán
       note: data.note ?? ''
     };
     
@@ -167,8 +167,35 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }))
     const orderItems = await OrderItemModel.insertMany(itemsToInsert, { session })
 
+    // Cập nhật stock và flash sale sold quantity
     for (const it of data.items) {
       await ProductVariantModel.updateOne({ _id: it.variantId }, { $inc: { stock: -it.quantity } }, { session })
+      
+      // Cập nhật số lượng đã bán cho flash sale items
+      const FlashSaleItemModel = require('~/models/flash_sale_item.model').default
+      const now = new Date()
+      
+      const flashSaleItem = await FlashSaleItemModel.findOne({
+        productId: it.productId,
+        variantId: it.variantId,
+        deleted: false
+      }).populate({
+        path: 'flashSaleId',
+        match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          isActive: true,
+          deleted: false
+        }
+      }).session(session)
+      
+      if (flashSaleItem && flashSaleItem.flashSaleId) {
+        await FlashSaleItemModel.updateOne(
+          { _id: flashSaleItem._id },
+          { $inc: { soldQuantity: it.quantity } },
+          { session }
+        )
+      }
     }
 
     // 6. Commit
@@ -301,9 +328,9 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   const currentStatus = currentOrder.status
   const validTransitions: Record<string, string[]> = {
     pending: ['confirmed', 'cancelled'],
-    confirmed: ['processing', 'cancelled'],
-    processing: ['shipped', 'cancelled'],
-    shipped: ['delivered', 'cancelled'],
+    confirmed: ['processing'],
+    processing: ['shipped'],
+    shipped: ['delivered'],
     delivered: ['completed', 'refunded'],
     completed: ['refunded'],
     cancelled: [],
@@ -323,7 +350,14 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
     updateData.reason = reason // ✅ Lúc này mới thực sự cập nhật
   }
 
-  if (currentOrder.paymentMethod === 'cash' && status === 'delivered') {
+  // Cập nhật trạng thái thanh toán dựa trên trạng thái đơn hàng
+  if (status === 'delivered' && currentOrder.paymentMethod === 'cash') {
+    updateData.paymentStatus = 'paid'
+    console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
+  } else if (status === 'cancelled') {
+    updateData.paymentStatus = 'cancelled'
+    console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã hủy'`)
+  } else if (status === 'completed' && currentOrder.paymentMethod !== 'cash') {
     updateData.paymentStatus = 'paid'
     console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
   }
@@ -344,11 +378,27 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
     throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
   }
 
-  sendEmail(user.email, 'Kích hoạt tài khoản', 'order-status', {
+  // Lấy thông tin chi tiết đơn hàng để gửi email
+  const orderItems = await OrderItemModel.find({ orderId: order._id })
+    .populate('productId', 'name image')
+    .populate('variantId', 'sku color size')
+    .lean()
+    .exec()
+
+  sendEmail(user.email, `Cập nhật đơn hàng #${order._id}`, 'order-status', {
     orderId: order._id,
-    userName: user.fullName,
-    currentStatus: order.status,
-    customerName: user.fullName
+    customerName: user.fullName || user.name,
+    currentStatus: ORDER_STATUS_LABELS[order.status] || order.status,
+    orderInfo: {
+      totalPrice: order.totalPrice,
+      shippingPrice: order.shippingPrice,
+      paymentMethod: order.paymentMethod,
+      shippingMethod: order.shippingMethod,
+      note: order.note,
+      createdAt: order.createdAt
+    },
+    items: orderItems,
+    address: order.addressFree || order.addressId
   })
 
   return order
@@ -374,25 +424,53 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Đơn hàng không tồn tại')
     }
 
-    // Kiểm tra trạng thái đơn hàng
-    if (order.status !== 'pending' && order.status !== 'processing') {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng ở trạng thái hiện tại')
+    // Kiểm tra trạng thái đơn hàng - chỉ cho phép hủy đơn hàng ở trạng thái chờ xác nhận
+    if (order.status !== 'pending') {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Không thể hủy đơn hàng đã được xử lý')
     }
 
-    // Cập nhật trạng thái đơn hàng thành 'cancelled'
+    // Cập nhật trạng thái đơn hàng thành 'cancelled' và trạng thái thanh toán thành 'cancelled'
     order.status = 'cancelled'
     order.reason = reason
+    order.paymentStatus = 'cancelled'
     await order.save({ session })
 
     // Lấy tất cả các mục trong đơn hàng
     const orderItems = await OrderItemModel.find({ orderId: order._id }).session(session)
 
-    // Cộng lại số lượng sản phẩm vào kho
+    // Cộng lại số lượng sản phẩm vào kho và trừ lại flash sale sold quantity
     for (const item of orderItems) {
       await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
+      
+      // Trừ lại số lượng đã bán cho flash sale items
+      const FlashSaleItemModel = require('~/models/flash_sale_item.model').default
+      const now = new Date()
+      
+      const flashSaleItem = await FlashSaleItemModel.findOne({
+        productId: item.productId,
+        variantId: item.variantId,
+        deleted: false
+      }).populate({
+        path: 'flashSaleId',
+        match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          isActive: true,
+          deleted: false
+        }
+      }).session(session)
+      
+      if (flashSaleItem && flashSaleItem.flashSaleId) {
+        await FlashSaleItemModel.updateOne(
+          { _id: flashSaleItem._id },
+          { $inc: { soldQuantity: -item.quantity } },
+          { session }
+        )
+      }
     }
 
-    await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
+    // KHÔNG xóa các mục trong đơn hàng nữa
+    // await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
 
     // Commit transaction
     await session.commitTransaction()
@@ -411,90 +489,7 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
   }
 }
 
-// Hàm mới để lấy tất cả đơn hàng cho Admin
-const handleFetchAllOrdersForAdmin = async (filter: any, sort: any, pagination: any) => {
-  try {
-    console.log('handleFetchAllOrdersForAdmin called with:', { filter, sort, pagination })
-    const currentPage = pagination?.page || 1
-    const limit = pagination?.limit || 10
 
-    if (filter.keyword) {
-      const keyword = String(filter.keyword).trim()
-      delete filter.keyword
-
-      if (keyword) {
-        filter.$or = [
-          { '_id': { $regex: keyword, $options: 'i' } },
-          { 'status': { $regex: keyword, $options: 'i' } },
-          { 'paymentMethod': { $regex: keyword, $options: 'i' } }
-        ]
-      }
-    }
-
-    delete filter.current
-    delete filter.pageSize
-
-    const offset = (+currentPage - 1) * +limit
-    const defaultLimit = +limit ? +limit : 10
-
-    // Đếm tổng số đơn hàng trong database
-    const allOrdersCount = await OrderModel.countDocuments({})
-    console.log('Total orders in database:', allOrdersCount)
-
-    // Hiển thị tất cả các đơn hàng trong database
-    const allOrders = await OrderModel.find({}).lean().exec()
-    console.log('All orders in database:', allOrders.map(order => ({
-      id: order._id,
-      status: order.status,
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus
-    })))
-
-    const totalItems = await OrderModel.countDocuments(filter)
-    console.log('Orders matching filter:', totalItems)
-
-    const totalPages = Math.ceil(totalItems / defaultLimit)
-
-    // Lấy danh sách đơn hàng
-    const results = await OrderModel.find(filter)
-      .skip(offset)
-      .limit(defaultLimit)
-      .sort(sort as any)
-      .populate('userId', 'fullName name email phone')
-      .populate('addressId', 'province district ward address')
-      .populate('discountId', 'name value type startDate endDate')
-      .lean()
-      .exec()
-
-    console.log('Orders found after query:', results.length)
-
-    // Lấy thêm thông tin các sản phẩm trong đơn hàng
-    const ordersWithItems = await Promise.all(
-      results.map(async (order) => {
-        const items = await OrderItemModel.find({ orderId: order._id })
-          .populate('productId')
-          .populate('variantId')
-          .lean()
-          .exec()
-        console.log(`Order ${order._id} has ${items.length} items`)
-        return { ...order, items }
-      })
-    )
-
-    return {
-      meta: {
-        current: currentPage,
-        pageSize: defaultLimit,
-        pages: totalPages,
-        total: totalItems
-      },
-      results: ordersWithItems
-    }
-  } catch (error) {
-    console.error('Error fetching all orders for admin:', error)
-    throw error
-  }
-}
 
 export const orderService = {
   handleCreateOrder,
@@ -502,6 +497,5 @@ export const orderService = {
   handleFetchAllOrders,
   handleUpdateStatusOrder,
   handleFetchItemOfOrder,
-  handleCancelOrder,
-  handleFetchAllOrdersForAdmin
+  handleCancelOrder
 }

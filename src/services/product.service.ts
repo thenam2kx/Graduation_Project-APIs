@@ -8,6 +8,8 @@ import '../models/brand.model'
 import mongoose, { Types } from 'mongoose'
 import ProductVariantModel from '~/models/product-variant.model'
 import VariantAttributeModel from '~/models/variant-attribute.model'
+import OrderItemModel from '~/models/orderItems.model'
+import FlashSaleItemModel from '~/models/flash_sale_item.model'
 
 export interface IAttributeValue {
   attributeId: string
@@ -126,15 +128,22 @@ const handleCreateProduct = async (productData: IProduct) => {
 const handleFetchAllProduct = async ({
   currentPage,
   limit,
-  qs
+  qs,
+  categoryId
 }: {
   currentPage: number
   limit: number
   qs: string
+  categoryId?: string
 }) => {
   const { filter, sort } = aqp(qs)
   delete filter.current
   delete filter.pageSize
+  
+  // Thêm filter theo categoryId nếu có
+  if (categoryId) {
+    filter.categoryId = categoryId
+  }
 
   const offset = (+currentPage - 1) * +limit
   const defaultLimit = +limit || 10
@@ -145,7 +154,7 @@ const handleFetchAllProduct = async ({
   const results = await ProductModel.find(filter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort as any)
+    .sort(sort && Object.keys(sort).length > 0 ? sort as any : { createdAt: -1 })
     .populate({ path: 'categoryId', model: 'Category', select: 'name' })
     .populate({ path: 'brandId', model: 'Brand', select: 'name' })
     .populate({
@@ -264,9 +273,14 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
     })
     await existingProduct.save({ session })
 
-    // 3. Xóa hết variants và variantAttributes cũ của product này
-    const oldVariants = await ProductVariantModel.find({ productId }, '_id').session(session)
+    // 3. Lấy thông tin variants cũ và flash sale items liên quan
+    const oldVariants = await ProductVariantModel.find({ productId }).select('_id sku').session(session)
     const oldVariantIds = oldVariants.map(v => v._id)
+    const flashSaleItems = oldVariantIds.length > 0 
+      ? await FlashSaleItemModel.find({ variantId: { $in: oldVariantIds } }).session(session)
+      : []
+    
+    // Xóa variants và variantAttributes cũ
     if (oldVariantIds.length > 0) {
       await VariantAttributeModel.deleteMany({ variantId: { $in: oldVariantIds } }).session(session)
       await ProductVariantModel.deleteMany({ productId }).session(session)
@@ -284,7 +298,22 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
       }));
       const createdVariants = await ProductVariantModel.insertMany(variantDocs, { session })
 
-      // 4.2 Tạo VariantAttribute
+      // 4.2 Cập nhật flash sale items với variant mới (match theo SKU)
+      for (const flashSaleItem of flashSaleItems) {
+        const oldVariant = oldVariants.find(v => v._id.toString() === flashSaleItem.variantId.toString())
+        if (oldVariant) {
+          const newVariant = createdVariants.find(v => v.sku === oldVariant.sku)
+          if (newVariant) {
+            await FlashSaleItemModel.findByIdAndUpdate(
+              flashSaleItem._id,
+              { variantId: newVariant._id },
+              { session }
+            )
+          }
+        }
+      }
+
+      // 4.3 Tạo VariantAttribute
       const variantAttributes: IVariantAttribute[] = []
       createdVariants.forEach((createdVar, idx) => {
         const attrs = productData.variants[idx].attributes || []
@@ -298,6 +327,11 @@ const handleUpdateProduct = async (productId: string, productData: IProduct) => 
       })
       if (variantAttributes.length > 0) {
         await VariantAttributeModel.insertMany(variantAttributes, { session })
+      }
+    } else {
+      // Nếu không có variants mới, xóa flash sale items cũ
+      if (flashSaleItems.length > 0) {
+        await FlashSaleItemModel.deleteMany({ _id: { $in: flashSaleItems.map(item => item._id) } }).session(session)
       }
     }
 
@@ -334,15 +368,25 @@ const handleDeleteProduct = async (productId: string) => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Sản phẩm không tồn tại')
     }
 
-    // 3. Soft-delete sản phẩm chính
+    // 3. Kiểm tra xem sản phẩm đã có trong đơn hàng nào chưa
+    const orderItemExists = await OrderItemModel.findOne({ productId: product._id, deleted: false }).session(session)
+    
+    if (orderItemExists) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST, 
+        'Không thể xóa sản phẩm này vì đã có trong đơn hàng. Vui lòng ngừng kinh doanh sản phẩm thay vì xóa.'
+      )
+    }
+
+    // 4. Soft-delete sản phẩm chính
     //    plugin mongoose-delete cung cấp method `delete()` trên document
     await product.delete({ session })
 
-    // 4. Soft-delete tất cả variant liên quan
+    // 5. Soft-delete tất cả variant liên quan
     //    Sử dụng Model.deleteMany hoặc statics do plugin cung cấp
     await ProductVariantModel.delete({ productId: product._id }).session(session)
 
-    // 5. Commit transaction
+    // 6. Commit transaction
     await session.commitTransaction()
     session.endSession()
 

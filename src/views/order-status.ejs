@@ -25,8 +25,96 @@
       </p>
 
       <p style="margin: 0 0 16px;">
-        Đơn hàng của bạn (<strong>#<%= orderId %></strong>): <strong><%= currentStatus %></strong>.
+        Đơn hàng của bạn (<strong>#<%= orderId %></strong>) đã được cập nhật trạng thái: <strong><%= currentStatus %></strong>.
       </p>
+
+      <!-- Thông tin đơn hàng -->
+      <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 12px; color: #3c4242; font-size: 18px;">Thông tin đơn hàng</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 4px 0; color: #666;">Ngày đặt:</td>
+            <td style="padding: 4px 0; font-weight: bold;"><%= new Date(orderInfo.createdAt).toLocaleDateString('vi-VN') %></td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #666;">Phương thức thanh toán:</td>
+            <td style="padding: 4px 0; font-weight: bold;"><%= orderInfo.paymentMethod === 'cash' ? 'Thanh toán khi nhận hàng' : 'Thanh toán online' %></td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #666;">Phương thức vận chuyển:</td>
+            <td style="padding: 4px 0; font-weight: bold;"><%= orderInfo.shippingMethod || 'Tiêu chuẩn' %></td>
+          </tr>
+          <% if (orderInfo.note) { %>
+          <tr>
+            <td style="padding: 4px 0; color: #666;">Ghi chú:</td>
+            <td style="padding: 4px 0; font-style: italic;"><%= orderInfo.note %></td>
+          </tr>
+          <% } %>
+        </table>
+      </div>
+
+      <!-- Danh sách sản phẩm -->
+      <div style="margin: 16px 0;">
+        <h3 style="margin: 0 0 12px; color: #3c4242; font-size: 18px;">Sản phẩm đã đặt</h3>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd;">Sản phẩm</th>
+              <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd;">Số lượng</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">Đơn giá</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 1px solid #ddd;">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(function(item) { %>
+            <tr>
+              <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                <div style="font-weight: bold;"><%= item.productId.name %></div>
+                <% if (item.variantId && (item.variantId.color || item.variantId.size)) { %>
+                <div style="font-size: 12px; color: #666;">
+                  <% if (item.variantId.color) { %>Màu: <%= item.variantId.color %><% } %>
+                  <% if (item.variantId.size) { %> | Size: <%= item.variantId.size %><% } %>
+                </div>
+                <% } %>
+              </td>
+              <td style="padding: 12px; text-align: center; border-bottom: 1px solid #eee;"><%= item.quantity %></td>
+              <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;"><%= item.price.toLocaleString('vi-VN') %>đ</td>
+              <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;"><%= (item.price * item.quantity).toLocaleString('vi-VN') %>đ</td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tổng tiền -->
+      <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 4px 0; color: #666;">Phí vận chuyển:</td>
+            <td style="padding: 4px 0; text-align: right; font-weight: bold;"><%= orderInfo.shippingPrice.toLocaleString('vi-VN') %>đ</td>
+          </tr>
+          <tr style="border-top: 1px solid #ddd;">
+            <td style="padding: 8px 0; font-size: 18px; font-weight: bold; color: #3c4242;">Tổng cộng:</td>
+            <td style="padding: 8px 0; text-align: right; font-size: 18px; font-weight: bold; color: #0070f3;"><%= orderInfo.totalPrice.toLocaleString('vi-VN') %>đ</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Địa chỉ giao hàng -->
+      <% if (address) { %>
+      <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="margin: 0 0 12px; color: #3c4242; font-size: 18px;">Địa chỉ giao hàng</h3>
+        <% if (typeof address === 'object' && address.receiverName) { %>
+        <p style="margin: 0; line-height: 1.5;">
+          <strong><%= address.receiverName %></strong><br>
+          <% if (address.receiverPhone) { %>SĐT: <%= address.receiverPhone %><br><% } %>
+          <%= address.address %>, <%= address.ward %>, <%= address.district %>, <%= address.province %>
+        </p>
+        <% } else { %>
+        <p style="margin: 0;">Địa chỉ đã được cập nhật</p>
+        <% } %>
+      </div>
+      <% } %>
 
       <% if (currentStatus === 'Đã giao hàng') { %>
         <p style="margin: 0 0 16px;">

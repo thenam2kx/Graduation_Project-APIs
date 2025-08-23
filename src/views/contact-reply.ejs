@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phản hồi từ Perfume Store</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin: 0; padding: 0; min-width: 100%; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; background-color: #FAFAFA; color: #222222;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #0070f3; padding: 24px; color: #ffffff;">
+      <h1 style="font-size: 24px; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 15px; text-align: center;">
+        Phản hồi từ Perfume Store
+      </h1>
+    </div>
+    <div style="padding: 24px; background-color: #ffffff;">
+      <p style="margin-top: 0; margin-bottom: 24px;">Xin chào <strong><%= customerName %></strong>,</p>
+      
+      <p style="margin-top: 0; margin-bottom: 24px;">
+        Cảm ơn bạn đã liên hệ với chúng tôi. Dưới đây là phản hồi cho tin nhắn của bạn:
+      </p>
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #0070f3;">
+        <h3 style="margin-top: 0; margin-bottom: 16px; color: #0070f3;">Tin nhắn gốc của bạn:</h3>
+        <p style="margin: 0; padding: 12px; background-color: #ffffff; border-radius: 4px; font-style: italic;">
+          "<%= originalMessage %>"
+        </p>
+      </div>
+
+      <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; margin: 24px 0; border: 2px solid #0070f3;">
+        <h3 style="margin-top: 0; margin-bottom: 16px; color: #0070f3;">Phản hồi từ chúng tôi:</h3>
+        <div style="line-height: 1.6;">
+          <%= replyMessage %>
+        </div>
+      </div>
+
+      <p style="margin-top: 24px; margin-bottom: 24px;">
+        Nếu bạn có thêm câu hỏi, vui lòng liên hệ lại với chúng tôi qua:
+      </p>
+      
+      <ul style="margin: 16px 0; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">Email: <a href="mailto:support@perfume.com" style="color: #0070f3;">support@perfume.com</a></li>
+        <li style="margin-bottom: 8px;">Hotline: <strong>+84 775 703 144</strong></li>
+        <li>Website: <a href="http://localhost:3000" style="color: #0070f3;">Perfume Store</a></li>
+      </ul>
+      
+      <p style="margin-top: 24px; margin-bottom: 24px;">
+        Trân trọng,<br>
+        <strong>Đội ngũ hỗ trợ Perfume Store</strong>
+      </p>
+    </div>
+    <div style="background-color: #f6f6f6; padding: 24px;">
+      <p style="margin-top: 0; margin-bottom: 24px; text-align: center; font-size: 14px; color: #666;">
+        © 2024 Perfume Store. Tất cả quyền được bảo lưu.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

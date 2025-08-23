@@ -3,12 +3,13 @@ import path from 'path'
 import Joi from 'joi'
 
 const envFile = `.env.${process.env.NODE_ENV || 'development'}`
+// Load file .env tương ứng với môi trường
 dotenv.config({ path: path.join(process.cwd(), envFile) })
 
 const envVarsSchema = Joi.object()
   .keys({
     APP_PORT: Joi.number().default(8080),
-    APP_HOST: Joi.string().default('localhost'),
+    APP_HOST: Joi.string().default(process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'),
 
     CODE_EXPIRES: Joi.string().default('5m'),
 
