@@ -17,6 +17,7 @@ Router.route('/user/:userId/simple-test').get(verifyToken, reviewController.simp
 Router.route('/order/:orderId/products').get(verifyToken, reviewController.getOrderProducts)
 Router.route('/check/:userId/:productId').get(verifyToken, reviewController.checkUserReviewCount)
 Router.route('/order/:orderId/reviewable').get(verifyToken, reviewController.checkProductReviewableFromOrder)
+Router.route('/order/:orderId/reviewed').get(verifyToken, reviewController.checkOrderReviewed)
 Router.route('/debug').get(reviewController.debugDatabase)
 Router.route('/debug/user/:userId').get(reviewController.debugUser)
 
