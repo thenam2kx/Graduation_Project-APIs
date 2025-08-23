@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import UserModel from '~/models/user.model'
 import AddressModel from '~/models/address.model'
 import DiscountModel from '~/models/discounts.model'
+import DiscountUsageModel from '~/models/discount-usage.model'
 import ApiError from '~/utils/ApiError'
 import ProductModel from '~/models/product.model'
 import ProductVariantModel from '~/models/product-variant.model'
@@ -45,6 +46,48 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
 }
 export const ORDER_STATUS = Object.keys(ORDER_STATUS_LABELS)
 
+// Hàm kiểm tra mã giảm giá có áp dụng cho sản phẩm không
+const checkDiscountApplicability = async (discount: any, items: OrderItemInput[]) => {
+  // Nếu không có giới hạn nào thì áp dụng cho tất cả
+  if ((!discount.applies_category || discount.applies_category.length === 0) &&
+      (!discount.applies_product || discount.applies_product.length === 0) &&
+      (!discount.applies_variant || discount.applies_variant.length === 0)) {
+    return true
+  }
+
+  // Kiểm tra từng item trong đơn hàng
+  for (const item of items) {
+    // Kiểm tra variant
+    if (discount.applies_variant && discount.applies_variant.length > 0) {
+      const variantIds = discount.applies_variant.map((id: any) => id.toString())
+      if (variantIds.includes(item.variantId.toString())) {
+        return true
+      }
+    }
+
+    // Kiểm tra product
+    if (discount.applies_product && discount.applies_product.length > 0) {
+      const productIds = discount.applies_product.map((id: any) => id.toString())
+      if (productIds.includes(item.productId.toString())) {
+        return true
+      }
+    }
+
+    // Kiểm tra category
+    if (discount.applies_category && discount.applies_category.length > 0) {
+      const product = await ProductModel.findById(item.productId).lean()
+      if (product) {
+        const categoryIds = discount.applies_category.map((id: any) => id.toString())
+        if (categoryIds.includes(product.categoryId.toString())) {
+          return true
+        }
+      }
+    }
+  }
+
+  return false
+}
+
 const handleCreateOrder = async (data: CreateOrderDTO) => {
   console.log('🚀 ~ handleCreateOrder ~ data:', data)
   console.log('Creating order with payment method:', data.paymentMethod)
@@ -80,11 +123,34 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       if (!discount) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Discount không tồn tại')
       }
+      
+      // Kiểm tra người dùng đã sử dụng mã giảm giá này chưa
+      const existingUsage = await DiscountUsageModel.findOne({
+        userId: data.userId,
+        discountId: data.discountId
+      })
+      
+      if (existingUsage) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
+      }
+      
       // kiểm tra thời gian
       const now = new Date()
       if (discount?.startDate > now || discount?.endDate < now) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Discount không còn hiệu lực')
       }
+      
+      // Kiểm tra số lượng còn lại
+      if (discount.usage_limit <= 0) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết lượt sử dụng')
+      }
+      
+      // Kiểm tra mã giảm giá có áp dụng cho sản phẩm trong đơn hàng không
+      const isApplicable = await checkDiscountApplicability(discount, data.items)
+      if (!isApplicable) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá không áp dụng cho sản phẩm này')
+      }
+      
       // tính discountAmount giả sử type Vnd hoặc %
       if (discount?.type === '%') {
         discountPercent = discount?.value
@@ -168,6 +234,21 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }))
     const orderItems = await OrderItemModel.insertMany(itemsToInsert, { session })
 
+    // Lưu lịch sử sử dụng mã giảm giá và trừ usage_limit
+    if (data.discountId) {
+      await DiscountUsageModel.create([{
+        userId: data.userId,
+        discountId: data.discountId,
+        orderId: order._id
+      }], { session })
+      
+      await DiscountModel.findByIdAndUpdate(
+        data.discountId,
+        { $inc: { usage_limit: -1 } },
+        { session }
+      )
+    }
+
     // Cập nhật stock và flash sale sold quantity
     for (const it of data.items) {
       await ProductVariantModel.updateOne({ _id: it.variantId }, { $inc: { stock: -it.quantity } }, { session })
@@ -199,23 +280,11 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       }
     }
 
-    // 6. Commit transaction trước
+
+
+
     await session.commitTransaction()
     session.endSession()
-
-    // 7. Trừ số lượng mã giảm giá nếu có (sau khi commit)
-    if (data.discountId) {
-      console.log('📝 Bắt đầu trừ số lượng mã giảm giá cho đơn hàng:', order._id)
-      try {
-        await discountService.handleUseDiscount(data.discountId, data.userId, order._id.toString())
-        console.log('✅ Hoàn thành trừ số lượng mã giảm giá')
-      } catch (error) {
-        console.error('❌ Lỗi khi trừ số lượng mã giảm giá:', error)
-        // Không throw error để không ảnh hưởng đến việc tạo đơn hàng
-      }
-    } else {
-      console.log('🚫 Không có mã giảm giá để trừ')
-    }
 
     // trả về kèm items
     return order.toObject({
@@ -372,6 +441,20 @@ const handleUpdateStatusOrder = async (orderId: string, status: string, reason?:
   } else if (status === 'cancelled') {
     updateData.paymentStatus = 'cancelled'
     console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã hủy'`)
+    
+    // Hoàn lại mã giảm giá và xóa lịch sử sử dụng
+    if (currentOrder.discountId) {
+      await DiscountModel.findByIdAndUpdate(
+        currentOrder.discountId,
+        { $inc: { usage_limit: 1 } }
+      )
+      
+      await DiscountUsageModel.deleteOne({
+        userId: currentOrder.userId,
+        discountId: currentOrder.discountId,
+        orderId: currentOrder._id
+      })
+    }
   } else if (status === 'completed' && currentOrder.paymentMethod !== 'cash') {
     updateData.paymentStatus = 'paid'
     console.log(`Cập nhật trạng thái thanh toán của đơn hàng ${orderId} thành 'đã thanh toán'`)
@@ -453,6 +536,21 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
     // Lấy tất cả các mục trong đơn hàng
     const orderItems = await OrderItemModel.find({ orderId: order._id }).session(session)
 
+    // Hoàn lại mã giảm giá và xóa lịch sử sử dụng
+    if (order.discountId) {
+      await DiscountModel.findByIdAndUpdate(
+        order.discountId,
+        { $inc: { usage_limit: 1 } },
+        { session }
+      )
+      
+      await DiscountUsageModel.deleteOne({
+        userId: order.userId,
+        discountId: order.discountId,
+        orderId: order._id
+      }).session(session)
+    }
+
     // Cộng lại số lượng sản phẩm vào kho và trừ lại flash sale sold quantity
     for (const item of orderItems) {
       await ProductVariantModel.updateOne({ _id: item.variantId }, { $inc: { stock: item.quantity } }, { session })
@@ -484,12 +582,9 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
       }
     }
 
-    // Hoàn lại số lượng mã giảm giá nếu có
-    if (order.discountId) {
-      await discountService.handleRefundDiscount(order.discountId.toString(), order.userId.toString(), order._id.toString())
-    }
 
-    // KHÔNG xóa các mục trong đơn hàng nữa
+
+
     // await OrderItemModel.deleteMany({ orderId: order._id }).session(session)
 
     // Commit transaction

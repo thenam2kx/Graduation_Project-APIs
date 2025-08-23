@@ -158,6 +158,6 @@ export const isDiscountValid = (discount: any): boolean => {
   return (
     discount.startDate <= now &&
     discount.endDate >= now &&
-    discount.used_count < discount.usage_limit
+    discount.usage_limit > 0
   )
 }

@@ -10,11 +10,11 @@ Router.route('/')
 Router.route('/apply')
   .post(verifyToken, discountsController.applyDiscount)
 
+Router.route('/rollback')
+  .post(verifyToken, discountsValidation.rollbackDiscountValidation, discountsController.rollbackDiscount)
+
 Router.route('/code/:code')
   .get(verifyToken, discountsValidation.getDiscountByCodeValidation, discountsController.getDiscountByCode)
-
-Router.route('/status/:discountId')
-  .get(discountsValidation.fetchDiscountsByIdValidation, discountsController.checkDiscountStatus)
 
 Router.route('/:discountsID')
   .get(discountsValidation.fetchDiscountsByIdValidation, discountsController.fetchDiscountsById)

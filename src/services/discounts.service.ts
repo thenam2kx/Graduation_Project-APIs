@@ -150,7 +150,7 @@ const handleDeleteDiscounts = async (discountId: string): Promise<any> => {
   return discount
 }
 
-const handleApplyDiscount = async (code: string, orderValue: number, userId: string) => {
+const handleApplyDiscount = async (code: string, orderValue: number, userId: string, items?: any[], orderId?: string) => {
   const discount = await DiscountModel.findOne({ code })
   if (!discount) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
@@ -160,10 +160,22 @@ const handleApplyDiscount = async (code: string, orderValue: number, userId: str
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc hết lượt sử dụng')
   }
 
-  // Kiểm tra user đã sử dụng mã giảm giá này chưa
-  const existingUsage = await DiscountUsageModel.findOne({ userId, discountId: discount._id })
+  // Kiểm tra người dùng đã sử dụng mã giảm giá này chưa
+  const existingUsage = await DiscountUsageModel.findOne({
+    userId,
+    discountId: discount._id
+  })
+  
   if (existingUsage) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
+  }
+
+  // Kiểm tra mã giảm giá có áp dụng cho sản phẩm không
+  if (items && items.length > 0) {
+    const isApplicable = await checkDiscountApplicabilityForItems(discount, items)
+    if (!isApplicable) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá không áp dụng cho sản phẩm này')
+    }
   }
 
   if (orderValue < discount.min_order_value) {
@@ -175,6 +187,15 @@ const handleApplyDiscount = async (code: string, orderValue: number, userId: str
     discountAmount = Math.min((orderValue * discount.value) / 100, discount.max_discount_amount)
   } else {
     discountAmount = Math.min(discount.value, orderValue)
+  }
+
+  // Chỉ lưu lịch sử sử dụng nếu có orderId, không trừ usage_limit ở đây
+  if (orderId) {
+    await DiscountUsageModel.create({
+      userId,
+      discountId: discount._id,
+      orderId
+    })
   }
 
   return {
@@ -191,48 +212,9 @@ const handleApplyDiscount = async (code: string, orderValue: number, userId: str
   }
 }
 
-const handleUseDiscount = async (discountId: string, userId: string, orderId: string) => {
-  console.log('🎫 Trừ số lượng mã giảm giá:', { discountId, userId, orderId })
-  
-  // Trừ số lượng mã giảm giá
-  const discount = await DiscountModel.findByIdAndUpdate(
-    discountId,
-    { $inc: { used_count: 1 } },
-    { new: true }
-  )
-  if (!discount) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
-  }
 
-  console.log('✅ Đã trừ số lượng mã giảm giá:', discount.code, 'used_count:', discount.used_count)
 
-  // Lưu lại thông tin sử dụng
-  await DiscountUsageModel.create({
-    userId,
-    discountId,
-    orderId
-  })
 
-  console.log('✅ Đã lưu thông tin sử dụng mã giảm giá')
-  return discount
-}
-
-const handleRefundDiscount = async (discountId: string, userId: string, orderId: string) => {
-  // Hoàn lại số lượng mã giảm giá
-  const discount = await DiscountModel.findByIdAndUpdate(
-    discountId,
-    { $inc: { used_count: -1 } },
-    { new: true }
-  )
-  if (!discount) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
-  }
-
-  // Xóa thông tin sử dụng
-  await DiscountUsageModel.deleteOne({ userId, discountId, orderId })
-
-  return discount
-}
 
 const handleGetDiscountByCode = async (code: string, userId?: string) => {
   const discount = await DiscountModel.findOne({ code }).lean()
@@ -244,24 +226,93 @@ const handleGetDiscountByCode = async (code: string, userId?: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc hết lượt sử dụng')
   }
 
-  // Kiểm tra user đã sử dụng mã giảm giá này chưa
+  // Kiểm tra người dùng đã sử dụng mã giảm giá này chưa
   if (userId) {
-    const existingUsage = await DiscountUsageModel.findOne({ userId, discountId: discount._id })
+    const existingUsage = await DiscountUsageModel.findOne({
+      userId,
+      discountId: discount._id
+    })
+    
     if (existingUsage) {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
     }
   }
-  
+
   return discount
 }
 
-const handleGetUserDiscountUsage = async (userId: string) => {
-  const usedDiscounts = await DiscountUsageModel.find({ userId })
-    .populate('discountId', 'code description')
-    .populate('orderId', '_id')
-    .lean()
-  return usedDiscounts
+const handleRollbackDiscount = async (discountId: string, orderId?: string) => {
+  isValidMongoId(discountId)
+  
+  const discount = await DiscountModel.findById(discountId)
+  if (!discount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  }
+
+  await DiscountModel.findByIdAndUpdate(
+    discountId,
+    { $inc: { usage_limit: 1 } },
+    { new: true }
+  )
+
+  // Xóa lịch sử sử dụng nếu có orderId
+  if (orderId) {
+    await DiscountUsageModel.deleteOne({
+      discountId,
+      orderId
+    })
+  }
+
+  return { message: 'Hoàn tác mã giảm giá thành công' }
 }
+
+// Hàm kiểm tra mã giảm giá có áp dụng cho items không
+const checkDiscountApplicabilityForItems = async (discount: any, items: any[]) => {
+  const ProductModel = require('~/models/product.model').default
+  
+  // Nếu không có giới hạn nào thì áp dụng cho tất cả
+  if ((!discount.applies_category || discount.applies_category.length === 0) &&
+      (!discount.applies_product || discount.applies_product.length === 0) &&
+      (!discount.applies_variant || discount.applies_variant.length === 0)) {
+    return true
+  }
+
+  // Kiểm tra từng item
+  for (const item of items) {
+    // Kiểm tra variant
+    if (discount.applies_variant && discount.applies_variant.length > 0) {
+      const variantIds = discount.applies_variant.map((id: any) => id.toString())
+      if (variantIds.includes(item.variantId.toString())) {
+        return true
+      }
+    }
+
+    // Kiểm tra product
+    if (discount.applies_product && discount.applies_product.length > 0) {
+      const productIds = discount.applies_product.map((id: any) => id.toString())
+      if (productIds.includes(item.productId.toString())) {
+        return true
+      }
+    }
+
+    // Kiểm tra category
+    if (discount.applies_category && discount.applies_category.length > 0) {
+      const product = await ProductModel.findById(item.productId).lean()
+      if (product) {
+        const categoryIds = discount.applies_category.map((id: any) => id.toString())
+        if (categoryIds.includes(product.categoryId.toString())) {
+          return true
+        }
+      }
+    }
+  }
+
+  return false
+}
+
+
+
+
 
 export const discountService = {
   handleCreateDiscounts,
@@ -270,8 +321,6 @@ export const discountService = {
   handleUpdateDiscounts,
   handleDeleteDiscounts,
   handleApplyDiscount,
-  handleUseDiscount,
-  handleRefundDiscount,
   handleGetDiscountByCode,
-  handleGetUserDiscountUsage
+  handleRollbackDiscount
 }

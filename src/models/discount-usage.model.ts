@@ -1,7 +1,7 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose from 'mongoose'
+import { Schema } from 'mongoose'
 
-export interface IDiscountUsage extends SoftDeleteDocument {
+export interface IDiscountUsage {
   userId: string
   discountId: string
   orderId: string
@@ -10,26 +10,19 @@ export interface IDiscountUsage extends SoftDeleteDocument {
 
 const DiscountUsageSchema: Schema<IDiscountUsage> = new mongoose.Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'users', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     discountId: { type: Schema.Types.ObjectId, ref: 'Discounts', required: true },
-    orderId: { type: Schema.Types.ObjectId, ref: 'orders', required: true },
+    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     usedAt: { type: Date, default: Date.now }
   },
   {
     timestamps: true,
-    versionKey: false,
-    strict: true
+    versionKey: false
   }
 )
 
-// Tạo index unique để đảm bảo 1 user chỉ dùng 1 mã giảm giá 1 lần
+// Index để tăng tốc độ truy vấn
 DiscountUsageSchema.index({ userId: 1, discountId: 1 }, { unique: true })
 
-DiscountUsageSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
-})
-
-const DiscountUsageModel = mongoose.model<IDiscountUsage, SoftDeleteModel<IDiscountUsage>>('DiscountUsage', DiscountUsageSchema)
+const DiscountUsageModel = mongoose.model<IDiscountUsage>('DiscountUsage', DiscountUsageSchema)
 export default DiscountUsageModel

@@ -210,17 +210,14 @@ const getDiscountByCode = async (req: Request, res: Response, next: NextFunction
   }
 }
 
-const checkDiscountStatus = async (req: Request, res: Response, next: NextFunction) => {
+const rollbackDiscount = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { discountId } = req.params
-    const discount = await discountService.handleFetchDiscountsById(discountId)
+    const { discountId } = req.body
+    const result = await discountService.handleRollbackDiscount(discountId)
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
-      message: 'Kiểm tra trạng thái mã giảm giá thành công',
-      data: {
-        ...discount,
-        remaining: discount.usage_limit - discount.used_count
-      }
+      message: 'Hoàn tác mã giảm giá thành công',
+      data: result
     })
   } catch (error) {
     const err = error as ErrorWithStatus
@@ -231,6 +228,10 @@ const checkDiscountStatus = async (req: Request, res: Response, next: NextFuncti
   }
 }
 
+
+
+
+
 export const discountsController = {
   createDiscounts,
   fetchAllDiscounts,
@@ -239,5 +240,5 @@ export const discountsController = {
   deleteDiscounts,
   applyDiscount,
   getDiscountByCode,
-  checkDiscountStatus
+  rollbackDiscount
 }
