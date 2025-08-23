@@ -381,14 +381,24 @@ const handleDeleteProduct = async (productId: string) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Sản phẩm đã tồn tại trong đơn hàng, không thể xóa!')
     }
 
-    // 4. Soft delete sản phẩm
+    // 4. Xóa flash sale items liên quan đến sản phẩm
+    await FlashSaleItemModel.deleteMany({ productId }).session(session)
+
+    // 5. Xóa flash sale items liên quan đến variants của sản phẩm
+    const variants = await ProductVariantModel.find({ productId }).select('_id').session(session)
+    if (variants.length > 0) {
+      const variantIds = variants.map(v => v._id)
+      await FlashSaleItemModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
+    }
+
+    // 6. Soft delete sản phẩm
     await ProductModel.findByIdAndUpdate(
       productId,
       { isDeleted: true, deletedAt: new Date() },
       { session }
     )
 
-    // 5. Commit transaction
+    // 7. Commit transaction
     await session.commitTransaction()
     session.endSession()
 
@@ -468,11 +478,15 @@ const handleForceDeleteProduct = async (productId: string): Promise<any> => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy sản phẩm để xóa!')
     }
 
-    // Xóa tất cả variant attributes liên quan
+    // Xóa flash sale items liên quan đến sản phẩm
+    await FlashSaleItemModel.deleteMany({ productId: product._id }).session(session)
+
+    // Xóa tất cả variant attributes và flash sale items liên quan
     const variants = await ProductVariantModel.find({ productId: product._id }).session(session)
     const variantIds = variants.map(v => v._id)
     if (variantIds.length > 0) {
       await VariantAttributeModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
+      await FlashSaleItemModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
     }
 
     // Xóa tất cả variant liên quan
