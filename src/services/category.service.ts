@@ -1,9 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import CategoryModel, { ICategory } from '~/models/category.model'
+import ProductModel from '~/models/product.model'
 import { isExistObject, isValidMongoId, createSlug } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import mongoose from 'mongoose'
+
+// Helper function để tạo hoặc lấy danh mục mặc định
+const getOrCreateUncategorized = async (session?: mongoose.ClientSession) => {
+  // Tìm danh mục mặc định (ưu tiên "khong-xac-dinh")
+  let uncategorized = await CategoryModel.findOne({ 
+    $or: [
+      { slug: 'khong-xac-dinh' },
+      { slug: 'danh-muc-mac-dinh' }
+    ]
+  }).sort({ slug: 1 }).session(session || null)
+  
+  if (!uncategorized) {
+    // Tạo mới nếu không tồn tại
+    const createData = {
+      name: 'Không xác định',
+      description: 'Danh mục mặc định cho các sản phẩm không có danh mục cụ thể',
+      isPublic: true,
+      isDeleted: false
+    }
+    
+    uncategorized = session 
+      ? (await CategoryModel.create([createData], { session }))[0]
+      : await CategoryModel.create(createData)
+  } else if (uncategorized.isDeleted) {
+    // Khôi phục nếu đã bị xóa
+    uncategorized = await CategoryModel.findByIdAndUpdate(
+      uncategorized._id,
+      { isDeleted: false, $unset: { deletedAt: 1 } },
+      { new: true, session }
+    )
+  }
+  
+  return uncategorized
+}
 
 const handleCreateCategory = async (data: ICategory) => {
   // Kiểm tra trùng tên
@@ -123,15 +159,46 @@ const handleUpdateCategory = async (categoryId: string, data: Partial<ICategory>
 
 const handleDeleteCategory = async (categoryId: string): Promise<any> => {
   isValidMongoId(categoryId)
-  const category = await CategoryModel.findByIdAndUpdate(
-    categoryId,
-    { isDeleted: true, deletedAt: new Date() },
-    { new: true }
-  )
-  if (!category) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục không tồn tại')
+  
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  
+  try {
+    // 1. Kiểm tra danh mục tồn tại
+    const category = await CategoryModel.findById(categoryId).session(session)
+    if (!category) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Danh mục không tồn tại')
+    }
+    
+    // 2. Tìm hoặc tạo danh mục "Không xác định"
+    const uncategorized = await getOrCreateUncategorized(session)
+    
+    // 3. Chuyển tất cả sản phẩm thuộc danh mục bị xóa sang danh mục "Không xác định"
+    await ProductModel.updateMany(
+      { 
+        categoryId: categoryId,
+        $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
+      },
+      { categoryId: uncategorized._id },
+      { session }
+    )
+    
+    // 4. Soft delete danh mục
+    const deletedCategory = await CategoryModel.findByIdAndUpdate(
+      categoryId,
+      { isDeleted: true, deletedAt: new Date() },
+      { new: true, session }
+    )
+    
+    await session.commitTransaction()
+    session.endSession()
+    
+    return deletedCategory
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    throw error
   }
-  return category
 }
 
 const handleFetchTrashCategories = async ({
@@ -203,13 +270,39 @@ const handleRestoreCategory = async (categoryId: string): Promise<any> => {
 
 const handleForceDeleteCategory = async (categoryId: string): Promise<any> => {
   isValidMongoId(categoryId)
-
-  const deleted = await CategoryModel.findByIdAndDelete(categoryId)
-  if (!deleted) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy danh mục để xóa!')
+  
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  
+  try {
+    // 1. Kiểm tra danh mục tồn tại
+    const category = await CategoryModel.findById(categoryId).session(session)
+    if (!category) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy danh mục để xóa!')
+    }
+    
+    // 2. Tìm hoặc tạo danh mục "Không xác định"
+    const uncategorized = await getOrCreateUncategorized(session)
+    
+    // 3. Chuyển tất cả sản phẩm thuộc danh mục bị xóa sang danh mục "Không xác định"
+    await ProductModel.updateMany(
+      { categoryId: categoryId },
+      { categoryId: uncategorized._id },
+      { session }
+    )
+    
+    // 4. Xóa vĩnh viễn danh mục
+    const deleted = await CategoryModel.findByIdAndDelete(categoryId).session(session)
+    
+    await session.commitTransaction()
+    session.endSession()
+    
+    return deleted
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    throw error
   }
-
-  return deleted
 }
 
 export const categoryService = {

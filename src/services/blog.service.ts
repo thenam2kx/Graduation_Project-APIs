@@ -86,7 +86,10 @@ const handleFetchBlogByCategory = async ({
   limit: number
   qs: string
 }) => {
-  const { filter, sort, population } = aqp(qs)
+  const aqpResult = aqp(qs || '')
+  const filter = aqpResult?.filter || {}
+  const sort = aqpResult?.sort || {}
+  const population = aqpResult?.population
   filter.categoryBlogId = categoryId
   delete filter.current
   delete filter.pageSize
