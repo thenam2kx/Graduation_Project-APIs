@@ -10,6 +10,7 @@ import ProductVariantModel from '~/models/product-variant.model'
 import { StatusCodes } from 'http-status-codes'
 import OrderItemModel, { IOrderItem } from '~/models/orderItems.model'
 import { sendEmail } from '~/utils/sendEmail'
+import { discountService } from './discounts.service'
 
 interface OrderItemInput {
   productId: string
@@ -198,9 +199,23 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
       }
     }
 
-    // 6. Commit
+    // 6. Commit transaction trước
     await session.commitTransaction()
     session.endSession()
+
+    // 7. Trừ số lượng mã giảm giá nếu có (sau khi commit)
+    if (data.discountId) {
+      console.log('📝 Bắt đầu trừ số lượng mã giảm giá cho đơn hàng:', order._id)
+      try {
+        await discountService.handleUseDiscount(data.discountId, data.userId, order._id.toString())
+        console.log('✅ Hoàn thành trừ số lượng mã giảm giá')
+      } catch (error) {
+        console.error('❌ Lỗi khi trừ số lượng mã giảm giá:', error)
+        // Không throw error để không ảnh hưởng đến việc tạo đơn hàng
+      }
+    } else {
+      console.log('🚫 Không có mã giảm giá để trừ')
+    }
 
     // trả về kèm items
     return order.toObject({
@@ -467,6 +482,11 @@ const handleCancelOrder = async (orderId: string, reason:string) => {
           { session }
         )
       }
+    }
+
+    // Hoàn lại số lượng mã giảm giá nếu có
+    if (order.discountId) {
+      await discountService.handleRefundDiscount(order.discountId.toString(), order.userId.toString(), order._id.toString())
     }
 
     // KHÔNG xóa các mục trong đơn hàng nữa

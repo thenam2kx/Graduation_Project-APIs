@@ -17,6 +17,7 @@ export interface IDiscounts extends SoftDeleteDocument {
   endDate: Date
   usage_limit: number
   usage_per_user: number
+  used_count: number
   createdBy?: {
     _id: string
     email: string
@@ -48,6 +49,7 @@ const DiscountSchema: Schema<IDiscounts> = new mongoose.Schema(
     endDate: { type: Date, required: true },
     usage_limit: { type: Number, required: true },
     usage_per_user: { type: Number, required: true },
+    used_count: { type: Number, default: 0 },
     createdBy: {
       _id: { type: String },
       email: { type: String }

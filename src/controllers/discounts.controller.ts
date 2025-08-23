@@ -167,11 +167,60 @@ const deleteDiscounts = async (req: Request, res: Response, next: NextFunction) 
 const applyDiscount = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code, orderValue } = req.body
-    const result = await discountService.handleApplyDiscount(code, orderValue)
+    const userId = req.user?._id
+    
+    if (!userId) {
+      return sendApiResponse(res, StatusCodes.UNAUTHORIZED, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        message: 'Vui lòng đăng nhập để sử dụng mã giảm giá'
+      })
+    }
+
+    const result = await discountService.handleApplyDiscount(code, orderValue, userId)
     sendApiResponse(res, StatusCodes.OK, {
       statusCode: StatusCodes.OK,
       message: 'Áp dụng mã giảm giá thành công',
       data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+const getDiscountByCode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code } = req.params
+    const userId = req.user?._id
+    const result = await discountService.handleGetDiscountByCode(code, userId)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy thông tin mã giảm giá thành công',
+      data: result
+    })
+  } catch (error) {
+    const err = error as ErrorWithStatus
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const statusCode = err.statusCode ?? StatusCodes.UNPROCESSABLE_ENTITY
+    const customError = new ApiError(statusCode, errorMessage)
+    next(customError)
+  }
+}
+
+const checkDiscountStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { discountId } = req.params
+    const discount = await discountService.handleFetchDiscountsById(discountId)
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Kiểm tra trạng thái mã giảm giá thành công',
+      data: {
+        ...discount,
+        remaining: discount.usage_limit - discount.used_count
+      }
     })
   } catch (error) {
     const err = error as ErrorWithStatus
@@ -188,5 +237,7 @@ export const discountsController = {
   fetchDiscountsById,
   updateDiscounts,
   deleteDiscounts,
-  applyDiscount
+  applyDiscount,
+  getDiscountByCode,
+  checkDiscountStatus
 }

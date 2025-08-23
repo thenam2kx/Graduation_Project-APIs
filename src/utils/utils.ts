@@ -146,3 +146,18 @@ export const hashPassword = async (password: string) => {
 export const comparePassword = async (password: string, hashPassword: string) => {
   return await compareSync(password, hashPassword)
 }
+
+/**
+ * @param discount - The discount object to validate.
+ * @description This function validates if a discount is still valid and can be used.
+ * It checks the start date, end date, and usage limit.
+ * @returns A boolean indicating whether the discount is valid.
+ */
+export const isDiscountValid = (discount: any): boolean => {
+  const now = new Date()
+  return (
+    discount.startDate <= now &&
+    discount.endDate >= now &&
+    discount.used_count < discount.usage_limit
+  )
+}

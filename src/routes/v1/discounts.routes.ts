@@ -1,12 +1,20 @@
 import express from 'express'
 import { discountsController } from '~/controllers/discounts.controller'
 import { discountsValidation } from '~/validations/discounts.validation'
+import { verifyToken } from '~/middlewares/verifyToken'
+
 const Router = express.Router()
 Router.route('/')
   .post(discountsValidation.createDiscountsValidation, discountsController.createDiscounts)
   .get(discountsValidation.fetchAllDiscountsValidation, discountsController.fetchAllDiscounts)
 Router.route('/apply')
-  .post(discountsController.applyDiscount)
+  .post(verifyToken, discountsController.applyDiscount)
+
+Router.route('/code/:code')
+  .get(verifyToken, discountsValidation.getDiscountByCodeValidation, discountsController.getDiscountByCode)
+
+Router.route('/status/:discountId')
+  .get(discountsValidation.fetchDiscountsByIdValidation, discountsController.checkDiscountStatus)
 
 Router.route('/:discountsID')
   .get(discountsValidation.fetchDiscountsByIdValidation, discountsController.fetchDiscountsById)

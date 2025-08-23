@@ -1,5 +1,6 @@
 import DiscountModel, { IDiscounts } from '~/models/discounts.model'
-import { isExistObject, isValidMongoId } from '~/utils/utils'
+import DiscountUsageModel from '~/models/discount-usage.model'
+import { isExistObject, isValidMongoId, isDiscountValid } from '~/utils/utils'
 import aqp from 'api-query-params'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
@@ -149,18 +150,20 @@ const handleDeleteDiscounts = async (discountId: string): Promise<any> => {
   return discount
 }
 
-const handleApplyDiscount = async (code: string, orderValue: number) => {
-  const discount = await DiscountModel.findOne({ code }).lean()
+const handleApplyDiscount = async (code: string, orderValue: number, userId: string) => {
+  const discount = await DiscountModel.findOne({ code })
   if (!discount) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
   }
 
-  const now = new Date()
-  const startDate = new Date(discount.startDate)
-  const endDate = new Date(discount.endDate)
+  if (!isDiscountValid(discount)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc hết lượt sử dụng')
+  }
 
-  if (now < startDate || now > endDate) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc chưa có hiệu lực')
+  // Kiểm tra user đã sử dụng mã giảm giá này chưa
+  const existingUsage = await DiscountUsageModel.findOne({ userId, discountId: discount._id })
+  if (existingUsage) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
   }
 
   if (orderValue < discount.min_order_value) {
@@ -175,10 +178,89 @@ const handleApplyDiscount = async (code: string, orderValue: number) => {
   }
 
   return {
-    discount,
     discountAmount,
-    finalAmount: orderValue - discountAmount
+    finalAmount: orderValue - discountAmount,
+    discountId: discount._id,
+    discount: {
+      _id: discount._id,
+      code: discount.code,
+      description: discount.description,
+      type: discount.type,
+      value: discount.value
+    }
   }
+}
+
+const handleUseDiscount = async (discountId: string, userId: string, orderId: string) => {
+  console.log('🎫 Trừ số lượng mã giảm giá:', { discountId, userId, orderId })
+  
+  // Trừ số lượng mã giảm giá
+  const discount = await DiscountModel.findByIdAndUpdate(
+    discountId,
+    { $inc: { used_count: 1 } },
+    { new: true }
+  )
+  if (!discount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  }
+
+  console.log('✅ Đã trừ số lượng mã giảm giá:', discount.code, 'used_count:', discount.used_count)
+
+  // Lưu lại thông tin sử dụng
+  await DiscountUsageModel.create({
+    userId,
+    discountId,
+    orderId
+  })
+
+  console.log('✅ Đã lưu thông tin sử dụng mã giảm giá')
+  return discount
+}
+
+const handleRefundDiscount = async (discountId: string, userId: string, orderId: string) => {
+  // Hoàn lại số lượng mã giảm giá
+  const discount = await DiscountModel.findByIdAndUpdate(
+    discountId,
+    { $inc: { used_count: -1 } },
+    { new: true }
+  )
+  if (!discount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  }
+
+  // Xóa thông tin sử dụng
+  await DiscountUsageModel.deleteOne({ userId, discountId, orderId })
+
+  return discount
+}
+
+const handleGetDiscountByCode = async (code: string, userId?: string) => {
+  const discount = await DiscountModel.findOne({ code }).lean()
+  if (!discount) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Mã giảm giá không tồn tại')
+  }
+  
+  if (!isDiscountValid(discount)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá đã hết hạn hoặc hết lượt sử dụng')
+  }
+
+  // Kiểm tra user đã sử dụng mã giảm giá này chưa
+  if (userId) {
+    const existingUsage = await DiscountUsageModel.findOne({ userId, discountId: discount._id })
+    if (existingUsage) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
+    }
+  }
+  
+  return discount
+}
+
+const handleGetUserDiscountUsage = async (userId: string) => {
+  const usedDiscounts = await DiscountUsageModel.find({ userId })
+    .populate('discountId', 'code description')
+    .populate('orderId', '_id')
+    .lean()
+  return usedDiscounts
 }
 
 export const discountService = {
@@ -187,5 +269,9 @@ export const discountService = {
   handleFetchDiscountsById,
   handleUpdateDiscounts,
   handleDeleteDiscounts,
-  handleApplyDiscount
+  handleApplyDiscount,
+  handleUseDiscount,
+  handleRefundDiscount,
+  handleGetDiscountByCode,
+  handleGetUserDiscountUsage
 }
