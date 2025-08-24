@@ -172,10 +172,43 @@ const deleteDiscountsValidation = async (req: Request, res: Response, next: Next
   }
 }
 
+const getDiscountByCodeValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    code: Joi.string().required().trim().messages({
+      'string.empty': 'Mã giảm giá không được để trống',
+      'any.required': 'Mã giảm giá là bắt buộc'
+    })
+  })
+
+  try {
+    await schema.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Xác thực dữ liệu thất bại'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+  }
+}
+
+const rollbackDiscountValidation = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    discountId: objectIdSchema
+  })
+
+  try {
+    await schema.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Xác thực dữ liệu thất bại'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, message))
+  }
+}
+
 export const discountsValidation = {
   createDiscountsValidation,
   fetchAllDiscountsValidation,
   fetchDiscountsByIdValidation,
   updateDiscountsValidation,
-  deleteDiscountsValidation
+  deleteDiscountsValidation,
+  getDiscountByCodeValidation,
+  rollbackDiscountValidation
 }
