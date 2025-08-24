@@ -25,6 +25,7 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
     slug: { type: String, unique: true },
     icon: { type: String, required: false },
     isPublic: { type: Boolean, default: false },
+    isDefault: { type: Boolean, default: false },
     createdBy: {
       _id: { type: String },
       email: { type: String }
