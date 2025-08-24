@@ -8,6 +8,9 @@ Router.route('/')
   .post(productValidation.createProductValidation, productController.createProduct)
   .get(productValidation.fetchAllProductValidation, productController.fetchAllProducts)
 
+Router.route('/all')
+  .get(productController.getAllProducts)
+
 Router.route('/trash')
   .get(productValidation.fetchAllProductValidation, productController.fetchTrashProducts)
 

@@ -2,6 +2,12 @@ import mongoose from 'mongoose'
 import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
 import { Schema } from 'mongoose'
 
+export const DISCOUNT_STATUS = {
+  UPCOMING: 'UPCOMING',
+  ONGOING: 'ONGOING', 
+  ENDED: 'ENDED'
+} as const
+
 export interface IDiscounts extends SoftDeleteDocument {
   code: string
   description: string
@@ -10,9 +16,7 @@ export interface IDiscounts extends SoftDeleteDocument {
   min_order_value: number
   max_discount_amount: number
   status: string
-  applies_category?: string[]
-  applies_product?: string[]
-  applies_variant?: string[]
+
   startDate: Date
   endDate: Date
   usage_limit: number
@@ -38,13 +42,11 @@ const DiscountSchema: Schema<IDiscounts> = new mongoose.Schema(
     max_discount_amount: { type: Number },
     status: {
       type: String,
-      enum: ['Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc'],
+      enum: Object.values(DISCOUNT_STATUS),
       required: true,
-      default: 'Sắp diễn ra'
+      default: DISCOUNT_STATUS.UPCOMING
     },
-    applies_category: { type: [Schema.Types.ObjectId], ref: 'Category', default: [] },
-    applies_product: { type: [Schema.Types.ObjectId], ref: 'products', default: [] },
-    applies_variant: { type: [Schema.Types.ObjectId], ref: 'product_variants', default: [] },
+
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     usage_limit: { type: Number, required: true },
