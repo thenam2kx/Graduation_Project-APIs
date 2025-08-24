@@ -57,6 +57,18 @@ const handleCreateCategory = async (data: ICategory) => {
   return result.toObject()
 }
 
+const handleGetAllCategories = async () => {
+  const categories = await CategoryModel.find({
+    $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
+  })
+    .select('_id name slug description isPublic')
+    .sort({ name: 1 })
+    .lean()
+    .exec()
+  
+  return categories
+}
+
 const handleFetchAllCategories = async ({
   currentPage,
   limit,
@@ -307,6 +319,7 @@ const handleForceDeleteCategory = async (categoryId: string): Promise<any> => {
 
 export const categoryService = {
   handleCreateCategory,
+  handleGetAllCategories,
   handleFetchAllCategories,
   handleFetchCategoryById,
   handleUpdateCategory,

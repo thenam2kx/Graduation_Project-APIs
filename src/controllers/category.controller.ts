@@ -73,6 +73,21 @@ const fetchAllCategories = async (req: Request, res: Response, next: NextFunctio
   }
 }
 
+const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await categoryService.handleGetAllCategories()
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy tất cả danh mục thành công',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện'
+    const customError = new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage)
+    next(customError)
+  }
+}
+
 const fetchCategoryById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { categoryId } = req.params
@@ -213,6 +228,7 @@ const forceDeleteCategory = async (req: Request, res: Response, next: NextFuncti
 export const categoryController = {
   createCategory,
   fetchAllCategories,
+  getAllCategories,
   fetchCategoryById,
   updateCategory,
   deleteCategory,
