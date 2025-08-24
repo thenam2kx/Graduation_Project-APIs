@@ -166,11 +166,70 @@ const getAllBrands = async (req: Request, res: Response, next: NextFunction) => 
   }
 }
 
+const fetchTrashBrands = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { current, pageSize, qs } = req.query
+    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
+    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const parsedQs = typeof qs === 'string' ? qs : Array.isArray(qs) ? qs.join(',') : ''
+
+    const result = await brandService.handleFetchTrashBrands({
+      currentPage: parsedCurrentPage,
+      limit: parsedLimit,
+      qs: parsedQs
+    })
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Lấy danh sách thùng rác thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const restoreBrand = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { brandID } = req.params
+    const result = await brandService.handleRestoreBrand(brandID)
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Khôi phục thương hiệu thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const forceDeleteBrand = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { brandID } = req.params
+    const result = await brandService.handleForceDeleteBrand(brandID)
+
+    sendApiResponse(res, StatusCodes.OK, {
+      statusCode: StatusCodes.OK,
+      message: 'Xóa vĩnh viễn thương hiệu thành công!',
+      data: result
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
 export const brandController = {
   createBrand,
   fetchAllBrand,
   fetchBrandById,
   updateBrand,
   deleteBrand,
-  getAllBrands
+  getAllBrands,
+  fetchTrashBrands,
+  restoreBrand,
+  forceDeleteBrand
 }

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6366f1;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-color: #1f2937;
+            --light-bg: #f8fafc;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+
+        .stats-section {
+            padding: 2rem;
+            background: var(--light-bg);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.active {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .content-section {
+            padding: 2rem;
+        }
+
+        .controls {
+            background: var(--light-bg);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .btn-custom {
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-primary-custom {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-success-custom {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger-custom {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .table {
+            margin: 0;
+        }
+
+        .table thead {
+            background: var(--dark-color);
+            color: white;
+        }
+
+        .table tbody tr:hover {
+            background: var(--light-bg);
+        }
+
+        .badge-custom {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .pagination-custom .page-link {
+            border-radius: 10px;
+            margin: 0 2px;
+            border: none;
+            color: var(--primary-color);
+        }
+
+        .pagination-custom .page-item.active .page-link {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-2 mb-0">Đang xử lý...</p>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-trash-restore"></i> <%= title %></h1>
+            <p>Quản lý và khôi phục dữ liệu đã xóa một cách an toàn</p>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <h3><i class="fas fa-chart-bar"></i> Tổng quan dữ liệu đã xóa</h3>
+            <div class="stats-grid">
+                <div class="stat-card active" data-model="products">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-number"><%= stats.products %></div>
+                    <div class="stat-label">Sản phẩm</div>
+                </div>
+                <div class="stat-card" data-model="users">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-number"><%= stats.users %></div>
+                    <div class="stat-label">Người dùng</div>
+                </div>
+                <div class="stat-card" data-model="categories">
+                    <div class="stat-icon">🏷️</div>
+                    <div class="stat-number"><%= stats.categories %></div>
+                    <div class="stat-label">Danh mục</div>
+                </div>
+                <div class="stat-card" data-model="brands">
+                    <div class="stat-icon">🏢</div>
+                    <div class="stat-number"><%= stats.brands %></div>
+                    <div class="stat-label">Thương hiệu</div>
+                </div>
+                <div class="stat-card" data-model="blogs">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-number"><%= stats.blogs %></div>
+                    <div class="stat-label">Blog</div>
+                </div>
+                <div class="stat-card" data-model="contacts">
+                    <div class="stat-icon">📧</div>
+                    <div class="stat-number"><%= stats.contacts %></div>
+                    <div class="stat-label">Liên hệ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="content-section">
+            <!-- Controls -->
+            <div class="controls">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4 class="mb-0">
+                            <span id="currentModelIcon">📦</span>
+                            Quản lý <span id="currentModelName">Sản phẩm</span> đã xóa
+                        </h4>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-success-custom btn-custom me-2" id="bulkRestoreBtn" disabled>
+                            <i class="fas fa-undo"></i> Khôi phục đã chọn (<span id="selectedCount">0</span>)
+                        </button>
+                        <button class="btn btn-danger-custom btn-custom me-2" id="bulkDeleteBtn" disabled>
+                            <i class="fas fa-trash"></i> Xóa vĩnh viễn đã chọn
+                        </button>
+                        <button class="btn btn-primary-custom btn-custom" id="refreshBtn">
+                            <i class="fas fa-sync-alt"></i> Làm mới
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" class="form-check-input" id="selectAll">
+                            </th>
+                            <th>ID</th>
+                            <th>Tên</th>
+                            <th>Ngày xóa</th>
+                            <th width="200">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="mt-4" id="paginationContainer">
+                <ul class="pagination pagination-custom justify-content-center" id="pagination">
+                    <!-- Pagination will be generated here -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.all.min.js"></script>
+    
+    <script>
+        class SoftDeleteManager {
+            constructor() {
+                this.currentModel = 'products'
+                this.currentPage = 1
+                this.pageSize = 10
+                this.selectedItems = new Set()
+                this.modelInfo = {
+                    products: { icon: '📦', name: 'Sản phẩm' },
+                    users: { icon: '👥', name: 'Người dùng' },
+                    categories: { icon: '🏷️', name: 'Danh mục' },
+                    brands: { icon: '🏢', name: 'Thương hiệu' },
+                    blogs: { icon: '📝', name: 'Blog' },
+                    contacts: { icon: '📧', name: 'Liên hệ' }
+                }
+                this.init()
+            }
+
+            init() {
+                this.bindEvents()
+                this.loadData()
+            }
+
+            bindEvents() {
+                // Model switching
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        const model = e.currentTarget.dataset.model
+                        this.switchModel(model)
+                    })
+                })
+
+                // Bulk actions
+                document.getElementById('bulkRestoreBtn').addEventListener('click', () => {
+                    this.bulkRestore()
+                })
+
+                document.getElementById('bulkDeleteBtn').addEventListener('click', () => {
+                    this.bulkDelete()
+                })
+
+                // Refresh
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadData()
+                })
+
+                // Select all
+                document.getElementById('selectAll').addEventListener('change', (e) => {
+                    this.toggleSelectAll(e.target.checked)
+                })
+            }
+
+            switchModel(model) {
+                this.currentModel = model
+                this.currentPage = 1
+                this.selectedItems.clear()
+                
+                // Update UI
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.classList.remove('active')
+                })
+                document.querySelector(`[data-model="${model}"]`).classList.add('active')
+                
+                const info = this.modelInfo[model]
+                document.getElementById('currentModelIcon').textContent = info.icon
+                document.getElementById('currentModelName').textContent = info.name
+                
+                this.updateBulkButtons()
+                this.loadData()
+            }
+
+            async loadData() {
+                this.showLoading(true)
+                try {
+                    const token = localStorage.getItem('token') || 'dummy-token'
+                    const response = await fetch(`/api/v1/soft-delete/${this.currentModel}?page=${this.currentPage}&limit=${this.pageSize}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+                    }
+                    
+                    const result = await response.json()
+                    this.renderTable(result.data.results)
+                    this.renderPagination(result.data.meta)
+                } catch (error) {
+                    console.error('Load data error:', error)
+                    this.showError('Lỗi khi tải dữ liệu: ' + error.message)
+                    this.renderEmptyState()
+                } finally {
+                    this.showLoading(false)
+                }
+            }
+
+            renderTable(items) {
+                const tbody = document.getElementById('dataTableBody')
+                
+                if (!items || items.length === 0) {
+                    this.renderEmptyState()
+                    return
+                }
+
+                tbody.innerHTML = items.map(item => `
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input item-checkbox" value="${item._id}">
+                        </td>
+                        <td>
+                            <code>${item._id.substring(0, 8)}...</code>
+                        </td>
+                        <td>
+                            <strong>${item.name || item.title || item.email || 'N/A'}</strong>
+                        </td>
+                        <td>
+                            <span class="badge badge-custom bg-warning">
+                                <i class="fas fa-clock"></i>
+                                ${new Date(item.deletedAt).toLocaleString('vi-VN')}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-success btn-sm me-1" onclick="softDeleteManager.restoreItem('${item._id}')">
+                                <i class="fas fa-undo"></i> Khôi phục
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="softDeleteManager.deleteItem('${item._id}')">
+                                <i class="fas fa-trash"></i> Xóa vĩnh viễn
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')
+
+                // Bind checkbox events
+                document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        this.updateSelection()
+                    })
+                })
+            }
+
+            renderEmptyState() {
+                const tbody = document.getElementById('dataTableBody')
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h5>Không có dữ liệu</h5>
+                                <p>Không có ${this.modelInfo[this.currentModel].name.toLowerCase()} nào đã bị xóa.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `
+                document.getElementById('paginationContainer').style.display = 'none'
+            }
+
+            renderPagination(meta) {
+                const pagination = document.getElementById('pagination')
+                
+                if (meta.pages <= 1) {
+                    document.getElementById('paginationContainer').style.display = 'none'
+                    return
+                }
+
+                document.getElementById('paginationContainer').style.display = 'block'
+                
+                let html = ''
+                
+                // Previous
+                html += `
+                    <li class="page-item ${meta.current === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="softDeleteManager.goToPage(${meta.current - 1})">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                `
+                
+                // Pages
+                for (let i = 1; i <= meta.pages; i++) {
+                    html += `
+                        <li class="page-item ${i === meta.current ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="softDeleteManager.goToPage(${i})">${i}</a>
+                        </li>
+                    `
+                }
+                
+                // Next
+                html += `
+                    <li class="page-item ${meta.current === meta.pages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="softDeleteManager.goToPage(${meta.current + 1})">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                `
+                
+                pagination.innerHTML = html
+            }
+
+            goToPage(page) {
+                if (page < 1) return
+                this.currentPage = page
+                this.loadData()
+            }
+
+            updateSelection() {
+                this.selectedItems.clear()
+                document.querySelectorAll('.item-checkbox:checked').forEach(checkbox => {
+                    this.selectedItems.add(checkbox.value)
+                })
+                this.updateBulkButtons()
+            }
+
+            updateBulkButtons() {
+                const count = this.selectedItems.size
+                document.getElementById('selectedCount').textContent = count
+                document.getElementById('bulkRestoreBtn').disabled = count === 0
+                document.getElementById('bulkDeleteBtn').disabled = count === 0
+            }
+
+            toggleSelectAll(checked) {
+                document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                    checkbox.checked = checked
+                })
+                this.updateSelection()
+            }
+
+            async restoreItem(id) {
+                const result = await Swal.fire({
+                    title: 'Xác nhận khôi phục',
+                    text: 'Bạn có chắc chắn muốn khôi phục item này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Khôi phục',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#10b981'
+                })
+
+                if (result.isConfirmed) {
+                    await this.executeRestore([id])
+                }
+            }
+
+            async deleteItem(id) {
+                const result = await Swal.fire({
+                    title: 'Cảnh báo!',
+                    text: 'Hành động này sẽ xóa vĩnh viễn dữ liệu và không thể hoàn tác!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa vĩnh viễn',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#ef4444'
+                })
+
+                if (result.isConfirmed) {
+                    await this.executeDelete([id])
+                }
+            }
+
+            async bulkRestore() {
+                if (this.selectedItems.size === 0) return
+
+                const result = await Swal.fire({
+                    title: 'Khôi phục hàng loạt',
+                    text: `Bạn có chắc chắn muốn khôi phục ${this.selectedItems.size} items?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Khôi phục tất cả',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#10b981'
+                })
+
+                if (result.isConfirmed) {
+                    await this.executeRestore(Array.from(this.selectedItems))
+                }
+            }
+
+            async bulkDelete() {
+                if (this.selectedItems.size === 0) return
+
+                const result = await Swal.fire({
+                    title: 'Cảnh báo nghiêm trọng!',
+                    html: `
+                        <p>Bạn sắp xóa vĩnh viễn <strong>${this.selectedItems.size}</strong> items!</p>
+                        <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Hành động này không thể hoàn tác!</p>
+                    `,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa vĩnh viễn',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#ef4444'
+                })
+
+                if (result.isConfirmed) {
+                    await this.executeDelete(Array.from(this.selectedItems))
+                }
+            }
+
+            async executeRestore(ids) {
+                this.showLoading(true)
+                try {
+                    const token = localStorage.getItem('token') || 'dummy-token'
+                    const endpoint = ids.length === 1 
+                        ? `/api/v1/soft-delete/${this.currentModel}/${ids[0]}/restore`
+                        : `/api/v1/soft-delete/${this.currentModel}/bulk/restore`
+                    
+                    const options = {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+
+                    if (ids.length > 1) {
+                        options.body = JSON.stringify({ ids })
+                    }
+
+                    const response = await fetch(endpoint, options)
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`)
+                    }
+
+                    this.showSuccess(`Khôi phục thành công ${ids.length} item(s)!`)
+                    this.selectedItems.clear()
+                    this.loadData()
+                } catch (error) {
+                    this.showError('Lỗi khi khôi phục: ' + error.message)
+                } finally {
+                    this.showLoading(false)
+                }
+            }
+
+            async executeDelete(ids) {
+                this.showLoading(true)
+                try {
+                    const token = localStorage.getItem('token') || 'dummy-token'
+                    const endpoint = ids.length === 1 
+                        ? `/api/v1/soft-delete/${this.currentModel}/${ids[0]}/permanent`
+                        : `/api/v1/soft-delete/${this.currentModel}/bulk/permanent`
+                    
+                    const options = {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+
+                    if (ids.length > 1) {
+                        options.body = JSON.stringify({ ids })
+                    }
+
+                    const response = await fetch(endpoint, options)
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`)
+                    }
+
+                    this.showSuccess(`Xóa vĩnh viễn thành công ${ids.length} item(s)!`)
+                    this.selectedItems.clear()
+                    this.loadData()
+                } catch (error) {
+                    this.showError('Lỗi khi xóa vĩnh viễn: ' + error.message)
+                } finally {
+                    this.showLoading(false)
+                }
+            }
+
+            showLoading(show) {
+                document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'
+            }
+
+            showSuccess(message) {
+                Swal.fire({
+                    title: 'Thành công!',
+                    text: message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                })
+            }
+
+            showError(message) {
+                Swal.fire({
+                    title: 'Lỗi!',
+                    text: message,
+                    icon: 'error',
+                    confirmButtonText: 'Đóng'
+                })
+            }
+        }
+
+        // Initialize
+        const softDeleteManager = new SoftDeleteManager()
+    </script>
+</body>
+</html>

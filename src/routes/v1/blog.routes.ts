@@ -10,6 +10,15 @@ Router.route('/')
 
 Router.route('/status/:blogId').patch(blogValidation.updateBlogStatusValidation, blogController.updateBlogStatus)
 
+Router.route('/trash')
+  .get(blogValidation.fetchAllBlogValidation, blogController.fetchTrashBlogs)
+
+Router.route('/restore/:blogId')
+  .patch(blogValidation.fetchInfoBlogValidation, blogController.restoreBlog)
+
+Router.route('/force-delete/:blogId')
+  .delete(blogValidation.deleteBlogValidation, blogController.forceDeleteBlog)
+
 Router.route('/by-category/:categoryId').get(
   blogValidation.fetchBlogByCategoryValidation,
   blogController.fetchBlogByCategory
