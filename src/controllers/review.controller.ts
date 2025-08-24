@@ -212,13 +212,15 @@ export const createReview = async (req: Request, res: Response) => {
       orderId = orderItem.orderId
     }
 
-    const reviewCount = await Review.countDocuments({
+    // Kiểm tra đã đánh giá đơn hàng này chưa
+    const existingReview = await Review.findOne({
       userId,
-      productId
+      productId,
+      orderId
     })
 
-    if (reviewCount >= 2) {
-      throw new ApiError(403, 'Bạn đã đạt giới hạn đánh giá cho sản phẩm này (tối đa 2 lần)')
+    if (existingReview) {
+      throw new ApiError(403, 'Bạn đã đánh giá sản phẩm này trong đơn hàng này rồi')
     }
 
     const hasBadWords = checkForBadWords(comment)
@@ -809,15 +811,17 @@ export const checkProductReviewableFromOrder = async (req: Request, res: Respons
     }
     const reviewableProducts = await Promise.all(
       orderItems.map(async (item: any) => {
+        // Kiểm tra đánh giá cho đơn hàng cụ thể này
         const reviewCount = await Review.countDocuments({
           userId: order.userId,
-          productId: item.productId?._id
+          productId: item.productId?._id,
+          orderId: orderId
         })
         return {
           productId: item.productId?._id?.toString() || '',
           productName: item.productId?.name || 'Unknown Product',
           productImage: item.productId?.image?.[0] || '',
-          canReview: reviewCount < 2,
+          canReview: reviewCount === 0, // Chỉ cho phép đánh giá 1 lần cho mỗi đơn hàng
           reviewCount
         }
       })
@@ -841,6 +845,46 @@ export const checkProductReviewableFromOrder = async (req: Request, res: Respons
     } else {
       res.status(500).json(
         new ApiResponse(500, null, 'Lỗi khi kiểm tra sản phẩm có thể đánh giá')
+      )
+    }
+  }
+}
+
+// Kiểm tra đơn hàng đã được đánh giá chưa
+export const checkOrderReviewed = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params
+    const order = await OrderModel.findById(orderId)
+    if (!order) {
+      throw new ApiError(404, 'Không tìm thấy đơn hàng')
+    }
+    
+    // Lấy tất cả sản phẩm trong đơn hàng
+    const orderItems = await OrderItemModel.find({ orderId })
+    const totalProducts = orderItems.length
+    
+    // Đếm số sản phẩm đã được đánh giá
+    const reviewCount = await Review.countDocuments({ orderId })
+    
+    // Đơn hàng được coi là đã đánh giá nếu có ít nhất 1 sản phẩm được đánh giá
+    const isReviewed = reviewCount > 0
+    
+    res.status(200).json(
+      new ApiResponse(200, {
+        isReviewed,
+        reviewCount,
+        totalProducts,
+        isFullyReviewed: reviewCount === totalProducts
+      }, isReviewed ? 'Đơn hàng đã được đánh giá' : 'Đơn hàng chưa được đánh giá')
+    )
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json(
+        new ApiResponse(error.statusCode, null, error.message)
+      )
+    } else {
+      res.status(500).json(
+        new ApiResponse(500, null, 'Lỗi khi kiểm tra trạng thái đánh giá đơn hàng')
       )
     }
   }
