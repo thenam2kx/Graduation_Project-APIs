@@ -1,12 +1,14 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Document } from 'mongoose'
+import slugify from 'slugify'
 
-export interface ICategory extends SoftDeleteDocument {
+export interface ICategory extends Document {
   name: string
   description: string
   slug: string
   icon: string
   isPublic: boolean
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -18,9 +20,9 @@ export interface ICategory extends SoftDeleteDocument {
 }
 const CategorySchema: Schema<ICategory> = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     icon: { type: String, required: false },
     isPublic: { type: Boolean, default: false },
     createdBy: {
@@ -31,10 +33,9 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date }
+
   },
   {
     timestamps: true,
@@ -43,12 +44,13 @@ const CategorySchema: Schema<ICategory> = new mongoose.Schema(
   }
 )
 
-// Override all methods
-CategorySchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
+// Auto generate slug from name
+CategorySchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
 })
 
-const CategoryModel = mongoose.model<ICategory, SoftDeleteModel<ICategory>>('Category', CategorySchema)
+const CategoryModel = mongoose.model<ICategory>('Category', CategorySchema)
 export default CategoryModel

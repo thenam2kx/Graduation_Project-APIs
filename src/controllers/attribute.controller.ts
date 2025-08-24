@@ -125,10 +125,90 @@ const deleteAttribute = async (req: Request, res: Response, next: NextFunction) 
   }
 }
 
+const fetchTrashAttributes = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { current, pageSize, qs } = req.query
+    const parsedCurrentPage = typeof current === 'string' ? parseInt(current, 10) : 1
+    const parsedLimit = typeof pageSize === 'string' ? parseInt(pageSize, 10) : 10
+    const parsedQs = typeof qs === 'string' ? qs : Array.isArray(qs) ? qs.join(',') : ''
+
+    const result = await attributeService.handleFetchTrashAttributes({
+      currentPage: parsedCurrentPage,
+      limit: parsedLimit,
+      qs: parsedQs
+    })
+
+    if (!result) {
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Có lỗi xảy ra trong quá trình lấy danh sách thùng rác!'
+      })
+    } else {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Lấy danh sách thùng rác thành công!',
+        data: result
+      })
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const restoreAttribute = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { attributeId } = req.params
+    const result = await attributeService.handleRestoreAttribute(attributeId)
+
+    if (!result) {
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Khôi phục thuộc tính thất bại!'
+      })
+    } else {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Khôi phục thuộc tính thành công!',
+        data: result
+      })
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
+const forceDeleteAttribute = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { attributeId } = req.params
+    const result = await attributeService.handleForceDeleteAttribute(attributeId)
+
+    if (!result) {
+      sendApiResponse(res, StatusCodes.BAD_REQUEST, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: 'Xóa vĩnh viễn thuộc tính thất bại!'
+      })
+    } else {
+      sendApiResponse(res, StatusCodes.OK, {
+        statusCode: StatusCodes.OK,
+        message: 'Xóa vĩnh viễn thuộc tính thành công!',
+        data: result
+      })
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra trong quá trình thực hiện!'
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, errorMessage))
+  }
+}
+
 export const attributeController = {
   createAttribute,
   fetchAllAttributes,
   fetchInfoAttribute,
   updateAttribute,
-  deleteAttribute
+  deleteAttribute,
+  fetchTrashAttributes,
+  restoreAttribute,
+  forceDeleteAttribute
 }

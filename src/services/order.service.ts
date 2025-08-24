@@ -100,16 +100,36 @@ const handleCreateOrder = async (data: CreateOrderDTO) => {
     }
     // kiểm existence & stock nếu cần
     for (const it of data.items) {
-      await isExistObject(
-        ProductModel,
-        { _id: it.productId },
-        { checkExisted: false, errorMessage: 'Product không tồn tại' }
-      )
-      await isExistObject(
-        ProductVariantModel,
-        { _id: it.variantId },
-        { checkExisted: false, errorMessage: 'Variant không tồn tại' }
-      )
+      // Validate ObjectId format first
+      if (!mongoose.isValidObjectId(it.productId)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, `Product ID không hợp lệ: ${it.productId}`)
+      }
+      if (!mongoose.isValidObjectId(it.variantId)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, `Variant ID không hợp lệ: ${it.variantId}`)
+      }
+
+      // Check product existence
+      const product = await ProductModel.findOne({ _id: it.productId, isDeleted: false }).lean()
+      if (!product) {
+        throw new ApiError(StatusCodes.NOT_FOUND, `Sản phẩm với ID ${it.productId} không tồn tại hoặc đã bị xóa`)
+      }
+
+      // Check variant existence and stock
+      const variant = await ProductVariantModel.findOne({ _id: it.variantId }).lean()
+      if (!variant) {
+        throw new ApiError(StatusCodes.NOT_FOUND, `Biến thể sản phẩm với ID ${it.variantId} không tồn tại`)
+      }
+
+      // Check if variant belongs to the product
+      if (variant.productId.toString() !== it.productId.toString()) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, `Biến thể ${it.variantId} không thuộc về sản phẩm ${it.productId}`)
+      }
+
+      // Check stock availability
+      if (variant.stock < it.quantity) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, `Không đủ hàng trong kho. Còn lại: ${variant.stock}, yêu cầu: ${it.quantity}`)
+      }
+
       if (it.quantity < 1 || it.price < 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Quantity phải ≥1 và price phải ≥0')
       }
@@ -266,8 +286,18 @@ const handleFetchAllOrders = async (
 
   // 4. Lấy tất cả OrderItem tương ứng
   const orderItems = await OrderItemModel.find({ orderId: { $in: orderIds } })
-    .populate('productId', 'name image')
-    .populate('variantId', 'sku color size')
+    .populate('productId', 'name image capacity')
+    .populate({
+      path: 'variantId',
+      select: 'sku color size',
+      populate: {
+        path: 'variant_attributes',
+        populate: {
+          path: 'attributeId',
+          select: 'name slug'
+        }
+      }
+    })
     .lean()
 
   // 5. Gộp items vào từng đơn

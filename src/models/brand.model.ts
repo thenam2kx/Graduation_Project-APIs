@@ -1,11 +1,13 @@
-import mongoose from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Document } from 'mongoose'
 import { Schema } from 'mongoose'
-export interface IBrand extends SoftDeleteDocument {
+import slugify from 'slugify'
+export interface IBrand extends Document {
   name: string
   slug: string
   avatar?: string
   isPublic: boolean
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -17,8 +19,8 @@ export interface IBrand extends SoftDeleteDocument {
 }
 const BrandSchema: Schema<IBrand> = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
+    name: { type: String, required: true, unique: true },
+    slug: { type: String, unique: true },
     avatar: { type: String },
     isPublic: { type: Boolean, default: false },
     createdBy: {
@@ -29,10 +31,9 @@ const BrandSchema: Schema<IBrand> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+
   },
   {
     timestamps: true,
@@ -40,10 +41,13 @@ const BrandSchema: Schema<IBrand> = new mongoose.Schema(
     strict: true
   }
 )
-BrandSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
+// Auto generate slug from name
+BrandSchema.pre('save', function(next) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = slugify(this.name, { lower: true, strict: true })
+  }
+  next()
 })
-const BrandModel = mongoose.model<IBrand, SoftDeleteModel<IBrand>>('Brand', BrandSchema)
+
+const BrandModel = mongoose.model<IBrand>('Brand', BrandSchema)
 export default BrandModel

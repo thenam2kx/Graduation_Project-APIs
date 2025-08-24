@@ -33,7 +33,7 @@ const fetchAllAttributesValidation = async (req: Request, res: Response, next: N
   const schema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
-    qs: Joi.string().optional()
+    qs: Joi.string().optional().allow('')
   })
   try {
     await schema.validateAsync(req.query, { abortEarly: false })

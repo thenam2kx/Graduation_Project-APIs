@@ -18,16 +18,11 @@ const createBrandValidation = async (req: Request, res: Response, next: NextFunc
       'string.empty': 'Tên không được để trống',
       'any.required': 'Tên bắt buộc'
     }),
-    slug: Joi.forbidden().messages({
-      'any.unknown': 'Slug không được phép truyền vào'
-    }),
+
     avatar: Joi.string().uri().optional().messages({
       'string.uri': 'Ảnh đại diện phải là URL hợp lệ'
     }),
-    isPublic: Joi.boolean().required().messages({
-      'any.required': 'Trạng thái là bắt buộc',
-      'boolean.base': 'Trạng thái phải là true hoặc false'
-    }),
+    isPublic: Joi.boolean().optional().default(true),
     categoryBrandId: objectIdSchema.label('categoryBrandId').optional()
   })
   try {
@@ -42,7 +37,7 @@ const fetchAllBrandValidation = async (req: Request, res: Response, next: NextFu
   const schema = Joi.object({
     current: Joi.number().optional().default(1).min(1),
     pageSize: Joi.number().optional().default(10).min(1).max(100),
-    qs: Joi.string().optional()
+    qs: Joi.string().optional().allow('')
   })
   try {
     await schema.validateAsync(req.query, { abortEarly: false })

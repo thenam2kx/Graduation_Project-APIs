@@ -8,6 +8,15 @@ Router.route('/')
   .post(attributeValidation.createAttributeValidation, attributeController.createAttribute)
   .get(attributeValidation.fetchAllAttributesValidation, attributeController.fetchAllAttributes)
 
+Router.route('/trash')
+  .get(attributeValidation.fetchAllAttributesValidation, attributeController.fetchTrashAttributes)
+
+Router.route('/restore/:attributeId')
+  .patch(attributeValidation.fetchInfoAttributeValidation, attributeController.restoreAttribute)
+
+Router.route('/force-delete/:attributeId')
+  .delete(attributeValidation.deleteAttributeValidation, attributeController.forceDeleteAttribute)
+
 Router.route('/:attributeId')
   .get(attributeValidation.fetchInfoAttributeValidation, attributeController.fetchInfoAttribute)
   .patch(attributeValidation.updateAttributeValidation, attributeController.updateAttribute)

@@ -1,13 +1,14 @@
-import mongoose, { Schema } from 'mongoose'
-import MongooseDelete, { SoftDeleteDocument, SoftDeleteModel } from 'mongoose-delete'
+import mongoose, { Schema, Document } from 'mongoose'
 
-export interface IBlog extends SoftDeleteDocument {
+export interface IBlog extends Document {
   title: string
   slug: string
   content: string
   image?: string
   categoryBlogId?: string
   isPublic?: boolean
+  isDeleted: boolean
+  deletedAt?: Date
   createdBy?: {
     _id: string
     email: string
@@ -34,10 +35,8 @@ const BlogSchema: Schema<IBlog> = new mongoose.Schema(
       _id: { type: String },
       email: { type: String }
     },
-    deletedBy: {
-      _id: { type: String },
-      email: { type: String }
-    }
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date }
   },
   {
     timestamps: true,
@@ -46,12 +45,5 @@ const BlogSchema: Schema<IBlog> = new mongoose.Schema(
   }
 )
 
-// Override all methods
-BlogSchema.plugin(MongooseDelete, {
-  overrideMethods: 'all',
-  deletedBy: true,
-  deletedByType: String
-})
-
-const BlogModel = mongoose.model<IBlog, SoftDeleteModel<IBlog>>('Blog', BlogSchema)
+const BlogModel = mongoose.model<IBlog>('Blog', BlogSchema)
 export default BlogModel
