@@ -8,6 +8,9 @@ Router.route('/')
   .post(categoryValidation.createCategoryValidation, categoryController.createCategory)
   .get(categoryValidation.fetchAllCategoriesValidation, categoryController.fetchAllCategories)
 
+Router.route('/all')
+  .get(categoryController.getAllCategories)
+
 Router.route('/trash')
   .get(categoryValidation.fetchAllCategoriesValidation, categoryController.fetchTrashCategories)
 

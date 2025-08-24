@@ -411,17 +411,23 @@ const handleFetchAllOrders = async (
 }
 
 const handleFetchOrder = async (orderId: string) => {
+  if (!mongoose.isValidObjectId(orderId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'ID đơn hàng không hợp lệ')
+  }
+  
   const order = await OrderModel.findById(orderId)
-    .populate('userId', 'fullName email phone')
+    .populate('userId', 'fullName name email phone')
     .populate('addressId')
     .populate('discountId', 'name value type startDate endDate')
     .lean()
     .exec()
-
+  
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Order không tồn tại')
   }
+  
   order.statusLabel = ORDER_STATUS_LABELS[order.status] || order.status
+  
   return order
 }
 

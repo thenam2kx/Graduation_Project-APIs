@@ -1,4 +1,4 @@
-import DiscountModel, { IDiscounts } from '~/models/discounts.model'
+import DiscountModel, { IDiscounts, DISCOUNT_STATUS } from '~/models/discounts.model'
 import DiscountUsageModel from '~/models/discount-usage.model'
 import { isExistObject, isValidMongoId, isDiscountValid } from '~/utils/utils'
 import aqp from 'api-query-params'
@@ -85,9 +85,6 @@ const handleFetchAllDiscounts = async ({
     .limit(defaultLimit)
     .sort(sort as any)
     .populate(population)
-    .populate('applies_category', 'name')
-    .populate('applies_product', 'name')
-    .populate('applies_variant', 'sku')
     .lean()
     .exec()
 
@@ -105,9 +102,6 @@ const handleFetchAllDiscounts = async ({
 const handleFetchDiscountsById = async (discountId: string) => {
   isValidMongoId(discountId)
   const discount = await DiscountModel.findById(discountId)
-    .populate('applies_category', 'name')
-    .populate('applies_product', 'name')
-    .populate('applies_variant', 'sku')
     .lean()
     .exec()
   if (!discount) {
@@ -119,6 +113,21 @@ const handleFetchDiscountsById = async (discountId: string) => {
 const handleUpdateDiscounts = async (discountId: string, data: Partial<IDiscounts>) => {
   isValidMongoId(discountId)
   try {
+    // Tính toán status dựa trên ngày tháng
+    if (data.startDate && data.endDate) {
+      const now = new Date()
+      const startDate = new Date(data.startDate)
+      const endDate = new Date(data.endDate)
+      
+      if (now < startDate) {
+        data.status = DISCOUNT_STATUS.UPCOMING
+      } else if (now > endDate) {
+        data.status = DISCOUNT_STATUS.ENDED
+      } else {
+        data.status = DISCOUNT_STATUS.ONGOING
+      }
+    }
+
     const discount = await DiscountModel.findByIdAndUpdate(discountId, data, {
       new: true,
       runValidators: true
@@ -170,14 +179,6 @@ const handleApplyDiscount = async (code: string, orderValue: number, userId: str
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Bạn đã sử dụng mã giảm giá này rồi')
   }
 
-  // Kiểm tra mã giảm giá có áp dụng cho sản phẩm không
-  if (items && items.length > 0) {
-    const isApplicable = await checkDiscountApplicabilityForItems(discount, items)
-    if (!isApplicable) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã giảm giá không áp dụng cho sản phẩm này')
-    }
-  }
-
   if (orderValue < discount.min_order_value) {
     throw new ApiError(StatusCodes.BAD_REQUEST, `Đơn hàng tối thiểu ${discount.min_order_value.toLocaleString('vi-VN')} VNĐ`)
   }
@@ -211,10 +212,6 @@ const handleApplyDiscount = async (code: string, orderValue: number, userId: str
     }
   }
 }
-
-
-
-
 
 const handleGetDiscountByCode = async (code: string, userId?: string) => {
   const discount = await DiscountModel.findOne({ code }).lean()
@@ -265,54 +262,6 @@ const handleRollbackDiscount = async (discountId: string, orderId?: string) => {
 
   return { message: 'Hoàn tác mã giảm giá thành công' }
 }
-
-// Hàm kiểm tra mã giảm giá có áp dụng cho items không
-const checkDiscountApplicabilityForItems = async (discount: any, items: any[]) => {
-  const ProductModel = require('~/models/product.model').default
-  
-  // Nếu không có giới hạn nào thì áp dụng cho tất cả
-  if ((!discount.applies_category || discount.applies_category.length === 0) &&
-      (!discount.applies_product || discount.applies_product.length === 0) &&
-      (!discount.applies_variant || discount.applies_variant.length === 0)) {
-    return true
-  }
-
-  // Kiểm tra từng item
-  for (const item of items) {
-    // Kiểm tra variant
-    if (discount.applies_variant && discount.applies_variant.length > 0) {
-      const variantIds = discount.applies_variant.map((id: any) => id.toString())
-      if (variantIds.includes(item.variantId.toString())) {
-        return true
-      }
-    }
-
-    // Kiểm tra product
-    if (discount.applies_product && discount.applies_product.length > 0) {
-      const productIds = discount.applies_product.map((id: any) => id.toString())
-      if (productIds.includes(item.productId.toString())) {
-        return true
-      }
-    }
-
-    // Kiểm tra category
-    if (discount.applies_category && discount.applies_category.length > 0) {
-      const product = await ProductModel.findById(item.productId).lean()
-      if (product) {
-        const categoryIds = discount.applies_category.map((id: any) => id.toString())
-        if (categoryIds.includes(product.categoryId.toString())) {
-          return true
-        }
-      }
-    }
-  }
-
-  return false
-}
-
-
-
-
 
 export const discountService = {
   handleCreateDiscounts,

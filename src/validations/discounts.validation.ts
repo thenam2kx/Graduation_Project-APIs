@@ -44,10 +44,7 @@ const createDiscountsValidation = async (req: Request, res: Response, next: Next
       'number.min': 'Số tiền giảm giá tối đa phải lớn hơn hoặc bằng 0',
       'any.required': 'Số tiền giảm giá tối đa là bắt buộc'
     }),
-    status: Joi.string().valid('Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc').optional(),
-    applies_category: Joi.array().items(Joi.string()).optional(),
-    applies_product: Joi.array().items(Joi.string()).optional(),
-    applies_variant: Joi.array().items(Joi.string()).optional(),
+    status: Joi.string().valid('Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc').optional(),
     startDate: Joi.date().iso().required().messages({
       'any.required': 'Ngày bắt đầu là bắt buộc',
       'date.base': 'Ngày bắt đầu không hợp lệ',
@@ -132,10 +129,7 @@ const updateDiscountsValidation = async (req: Request, res: Response, next: Next
       'number.min': 'Số tiền giảm giá tối đa phải lớn hơn hoặc bằng 0',
       'any.required': 'Số tiền giảm giá tối đa là bắt buộc'
     }),
-    status: Joi.string().valid('Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc').optional(),
-    applies_category: Joi.array().items(Joi.string()).optional(),
-    applies_product: Joi.array().items(Joi.string()).optional(),
-    applies_variant: Joi.array().items(Joi.string()).optional(),
+    status: Joi.string().valid('Sắp diễn ra', 'Đang diễn ra', 'Đã kết thúc').optional(),
     startDate: Joi.date().iso().required().messages({
       'any.required': 'Ngày bắt đầu là bắt buộc',
       'date.base': 'Ngày bắt đầu không hợp lệ',

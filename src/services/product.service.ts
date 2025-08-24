@@ -3,6 +3,7 @@ import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import ProductModel from '~/models/product.model'
 import { convertSlugUrl, isExistObject, isValidMongoId } from '~/utils/utils'
+import { sanitizeSearchQuery, isValidObjectId, sanitizePagination } from '~/utils/sanitize'
 import '../models/category.model'
 import '../models/brand.model'
 import mongoose, { Types } from 'mongoose'
@@ -128,43 +129,59 @@ const handleCreateProduct = async (productData: IProduct) => {
 const handleFetchAllProduct = async ({
   currentPage,
   limit,
-  qs,
+  name,
   categoryId,
   brandId
 }: {
   currentPage: number
   limit: number
-  qs: string
+  name?: string
   categoryId?: string
   brandId?: string
 }) => {
-  const { filter, sort } = aqp(qs)
-  delete filter.current
-  delete filter.pageSize
+  // Sanitize pagination parameters
+  const { current, pageSize } = sanitizePagination(currentPage, limit)
   
-  // Thêm filter theo categoryId, brandId và chỉ lấy sản phẩm chưa xóa
-  const baseFilter = {
-    ...filter,
+  let filter: any = {
     $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
   }
-  if (categoryId) {
-    baseFilter.categoryId = categoryId
-  }
-  if (brandId) {
-    baseFilter.brandId = brandId
-  }
-  const finalFilter = baseFilter
+  let sort: any = { createdAt: -1 }
 
-  const offset = (+currentPage - 1) * +limit
-  const defaultLimit = +limit || 10
+  // Xử lý tìm kiếm theo tên với sanitization
+  if (name && name.trim()) {
+    const sanitizedName = sanitizeSearchQuery(name)
+    if (sanitizedName) {
+      filter.name = { $regex: sanitizedName, $options: 'i' }
+    }
+  }
+
+  // Thêm filter theo categoryId và brandId với validation
+  if (categoryId && isValidObjectId(categoryId)) {
+    filter.categoryId = categoryId
+  }
+  if (brandId && isValidObjectId(brandId)) {
+    filter.brandId = brandId
+  }
+
+  const finalFilter = filter
+
+  // Debug log (chỉ trong development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Search params:', { name, categoryId, brandId })
+    console.log('Final filter:', JSON.stringify(finalFilter, null, 2))
+  }
+
+  const offset = (current - 1) * pageSize
+  const defaultLimit = pageSize
 
   const totalItems = await ProductModel.countDocuments(finalFilter)
+  console.log('Total items found:', totalItems)
   const totalPages = Math.ceil(totalItems / defaultLimit)
 
   const results = await ProductModel.find(finalFilter)
     .skip(offset)
     .limit(defaultLimit)
-    .sort(sort && Object.keys(sort).length > 0 ? sort as any : { createdAt: -1 })
+    .sort(sort)
     .populate({ path: 'categoryId', model: 'Category', select: 'name' })
     .populate({ path: 'brandId', model: 'Brand', select: 'name' })
     .populate({
@@ -200,7 +217,7 @@ const handleFetchAllProduct = async ({
 
   return {
     meta: {
-      current: currentPage,
+      current,
       pageSize: defaultLimit,
       pages: totalPages,
       total: totalItems
@@ -381,14 +398,24 @@ const handleDeleteProduct = async (productId: string) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Sản phẩm đã tồn tại trong đơn hàng, không thể xóa!')
     }
 
-    // 4. Soft delete sản phẩm
+    // 4. Xóa flash sale items liên quan đến sản phẩm
+    await FlashSaleItemModel.deleteMany({ productId }).session(session)
+
+    // 5. Xóa flash sale items liên quan đến variants của sản phẩm
+    const variants = await ProductVariantModel.find({ productId }).select('_id').session(session)
+    if (variants.length > 0) {
+      const variantIds = variants.map(v => v._id)
+      await FlashSaleItemModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
+    }
+
+    // 6. Soft delete sản phẩm
     await ProductModel.findByIdAndUpdate(
       productId,
       { isDeleted: true, deletedAt: new Date() },
       { session }
     )
 
-    // 5. Commit transaction
+    // 7. Commit transaction
     await session.commitTransaction()
     session.endSession()
 
@@ -468,11 +495,15 @@ const handleForceDeleteProduct = async (productId: string): Promise<any> => {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy sản phẩm để xóa!')
     }
 
-    // Xóa tất cả variant attributes liên quan
+    // Xóa flash sale items liên quan đến sản phẩm
+    await FlashSaleItemModel.deleteMany({ productId: product._id }).session(session)
+
+    // Xóa tất cả variant attributes và flash sale items liên quan
     const variants = await ProductVariantModel.find({ productId: product._id }).session(session)
     const variantIds = variants.map(v => v._id)
     if (variantIds.length > 0) {
       await VariantAttributeModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
+      await FlashSaleItemModel.deleteMany({ variantId: { $in: variantIds } }).session(session)
     }
 
     // Xóa tất cả variant liên quan
@@ -492,9 +523,18 @@ const handleForceDeleteProduct = async (productId: string): Promise<any> => {
   }
 }
 
+const handleGetAllProducts = async () => {
+  const products = await ProductModel.find({
+    $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }]
+  }).lean()
+  console.log('All products count:', products.length)
+  return products
+}
+
 export const productService = {
   handleCreateProduct,
   handleFetchAllProduct,
+  handleGetAllProducts,
   handleFetchInfoProduct,
   handleUpdateProduct,
   handleDeleteProduct,
